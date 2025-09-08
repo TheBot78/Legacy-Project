@@ -110,13 +110,13 @@ jobs:
 
       - name: Setup Ocaml with v2
         if: matrix.setup-version == 'v2'
-        uses: ocaml/setup-ocaml@v2
+        uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
 
       - name: Setup Ocaml with v3
         if: matrix.setup-version == 'v3'
-        uses: ocaml/setup-ocaml@v3.4.0
+        uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: ${{ (!startsWith(matrix.os, 'windows') && matrix.ocaml-compiler == '4.14.2') && 'ocaml-variants.4.14.2+options,ocaml-option-nnp' || matrix.ocaml-compiler }}
 
