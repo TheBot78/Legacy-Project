@@ -1,7 +1,0 @@
-[console_scripts]
-consang = geneweb.bin.consang:main
-ged2gwb = geneweb.bin.ged2gwb:main
-gwb2ged = geneweb.bin.gwb2ged:main
-gwc = geneweb.bin.gwc:main
-gwd = geneweb.bin.gwd:main
-gwu = geneweb.bin.gwu:main
