@@ -1,57 +1,52 @@
 ###############################################################################
-#                                                      STAGE 1: Build Geneweb
+#                                                      STAGE 1: Build RPC App
 ###############################################################################
 
 FROM python:3.11-slim AS builder
 
-# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV VENV_PATH=/opt/venv
+ENV PATH="${VENV_PATH}/bin:$PATH"
+ENV PYTHONPATH=/app
 
-# Install required system dependencies
+# Installer dépendances système pour builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential libssl-dev libffi-dev zlib1g-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Create a virtual environment
+# Créer le virtualenv
 RUN python -m venv ${VENV_PATH}
-ENV PATH="${VENV_PATH}/bin:$PATH"
 
-# Copy project files and install dependencies
+# Copier le code RPC
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt
+COPY rpc/ rpc/
 
-# Copy the rest of the application code
-COPY . .
+# Installer dépendances spécifiques à rpc
+RUN pip install --upgrade pip && pip install -r rpc/requirements.txt
 
 ###############################################################################
-#                                              STAGE 2: Assemble Docker image
+#                                              STAGE 2: Runtime container
 ###############################################################################
 
 FROM python:3.11-slim AS container
 
-# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV VENV_PATH=/opt/venv
 ENV PATH="${VENV_PATH}/bin:$PATH"
+ENV PYTHONPATH=/app
 
-# Install runtime dependencies
+# Dépendances système runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev libffi-dev zlib1g-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy the virtual environment and application files from the builder stage
-COPY --from=builder ${VENV_PATH} ${VENV_PATH}
+# Copier venv + code depuis le builder
+COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /app /app
 
-# Set the working directory
 WORKDIR /app
+EXPOSE 2316
 
-# Expose ports and define the default command
-EXPOSE 2316-2317
-CMD ["uvicorn", "RPC.main:app", "--host", "0.0.0.0", "--port", "2316"]
+CMD ["uvicorn", "rpc.server.main:app", "--host", "0.0.0.0", "--port", "2316"]
