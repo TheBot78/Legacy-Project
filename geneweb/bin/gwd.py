@@ -176,36 +176,29 @@ Généalogies disponibles :<br>
 </head>
 <body>
 <div class="container" id="welcome">
-{self._get_home_navigation()}
+  {self._get_home_navigation()}
 
-<div class="d-flex flex-column flex-md-row align-items-center justify-content-lg-around mt-1 mt-lg-3">
-  <div class="col-md-3 order-2 order-md-1 align-self-center mt-3 mt-md-0">
-    <div class="d-flex justify-content-center">
-      <img src="/images/arbre_start.png" alt="logo GeneWeb" width="180">
-    </div>
+  <!-- Logo centré -->
+  <div class="d-flex justify-content-center mt-3 mb-3">
+    <img src="/images/gwlogo.png" alt="logo GeneWeb" width="180">
   </div>
-  <div class="col-12 col-md-3 order-1 order-md-3 ml-md-2 px-0 mt-xs-2 mt-lg-0 align-self-center">
-    <div class="d-flex flex-column col-md-10 pl-1 pr-0">
-      <div class="btn-group btn-group-xs mt-1" role="group">
-        <a href="/?b={self.base_name}&w=f" class="btn btn-sm btn-outline-primary text-nowrap" role="button">
-          <i class="fas fa-user mr-2" aria-hidden="true"></i>
-          Ami</a>
-        <a href="/?b={self.base_name}&w=w" class="btn btn-sm btn-outline-success text-nowrap" role="button">
-          <i class="fas fa-hat-wizard mr-2" aria-hidden="true"></i>
-          Magicien</a>
+
+  <!-- Titre et nombre de personnes centrés -->
+  <div class="d-flex flex-column align-items-center">
+    <div class="text-center">
+      <h1 class="font-weight-bolder">Base de données {self.base_name}</h1>
+      <div class="d-flex justify-content-center align-items-center">
+        <span class="text-center h4 font-weight-lighter">{self.nb_persons} personnes</span>
+        <a class="align-self-center ml-2 mb-2" href="/?b={self.base_name}&i={random.randint(1, self.nb_persons)}" 
+           data-toggle="tooltip" data-placement="bottom" title="Individu au hasard">
+           <i class="fa-solid fa-dice"></i></a>
       </div>
     </div>
   </div>
-  <div class="my-0 order-3 order-md-2 flex-fill text-lg-center align-self-md-center">
-    <h1 class="font-weight-bolder">Base de données {self.base_name}</h1>
-    <div class="d-flex justify-content-center">
-      <span class="text-center h4 font-weight-lighter">{self.nb_persons} personnes</span>
-      <a class="align-self-center ml-2 mb-2" href="/?b={self.base_name}&i={random.randint(1, self.nb_persons)}" 
-         data-toggle="tooltip" data-placement="bottom" title="Individu au hasard">
-         <i class="fa-solid fa-dice"></i></a>
-    </div>
-  </div>
 </div>
+</body>
+</html>
+
 
 {self._get_search_form()}
 
@@ -295,16 +288,6 @@ Généalogies disponibles :<br>
           <div class="d-flex flex-column justify-content-center w-100">
             <div class="d-flex flex-column flex-md-row">
               <div class="w-100 w-md-auto flex-md-grow-1">
-                <div class="d-flex flex-grow-1">
-                  <div class="d-flex align-items-center ml-1 mr-2">
-                    <abbr data-toggle="tooltip" data-placement="top" data-html="true"
-                       title="Format de recherche">
-                      <i class="far fa-circle-question text-primary text-primary"></i>
-                    </abbr>
-                  </div>
-                  <input type="search" id="fullname" class="form-control form-control-lg py-0 border border-top-0" autofocus tabindex="1"
-                    name="pn" placeholder="Recherche personne, nom, nom public, alias, clé">
-                </div>
                 <div class="d-flex mt-3">
                   <div class="btn-group-vertical mr-2">
                     <a role="button" href="/?b={self.base_name}&m=P&tri=A" data-toggle="tooltip"
@@ -318,7 +301,7 @@ Généalogies disponibles :<br>
                     <div class="flex-grow-1 align-self-center">
                       <label for="firstname" class="sr-only col-form-label">Prénoms</label>
                       <input type="search" id="firstname" class="form-control form-control-lg border-top-0"
-                        name="p" placeholder="Prénoms" tabindex="2">
+                        name="p" placeholder="Pattronyme, nom public, alias" tabindex="2">
                     </div>
                   </div>
                 </div>
@@ -336,29 +319,12 @@ Généalogies disponibles :<br>
                       <label for="surname" class="sr-only col-form-label col-sm-2">Nom</label>
                       <input type="search" id="surname" class="form-control form-control-lg border border-top-0"
                         title="mots" data-toggle="tooltip"
-                        name="n" placeholder="Nom" tabindex="3">
+                        name="n" placeholder="Prénom(s)" tabindex="3">
                     </div>
                   </div>
                 </div>
               </div>
               <div class="d-flex flex-column align-items-center justify-content-between mt-3 mt-md-0 mx-0 mx-md-1 px-0 px-md-3 col-md-auto small">
-                <div class="d-flex flex-row flex-md-column justify-content-start mb-3 mb-md-0">
-                  <div class="align-self-md-start font-weight-bold mr-3 mr-md-0 mb-0 mb-md-1">Prénoms :</div>
-                  <div class="d-flex flex-row flex-md-column">
-                    <div class="custom-control custom-checkbox mr-3 mr-md-0 mb-md-1" data-toggle="tooltip" data-placement="top" title="pas tous">
-                      <input class="custom-control-input" type="checkbox" name="p_all" id="p_all" value="off" tabindex="4">
-                      <label class="custom-control-label d-flex align-items-center" for="p_all">pas tous</label>
-                    </div>
-                    <div class="custom-control custom-checkbox mr-3 mr-md-0 mb-md-1" data-toggle="tooltip" data-placement="top" title="ordre">
-                      <input class="custom-control-input" type="checkbox" name="p_order" id="p_order" value="on" tabindex="5">
-                      <label class="custom-control-label d-flex align-items-center" for="p_order">ordre</label>
-                    </div>
-                    <div class="custom-control custom-checkbox" data-toggle="tooltip" data-placement="top" title="pas exact">
-                      <input class="custom-control-input" type="checkbox" name="p_exact" id="p_exact" value="off" tabindex="6">
-                      <label class="custom-control-label d-flex align-items-center" for="p_exact">pas exact</label>
-                    </div>
-                  </div>
-                </div>
                 <button id="global-search-inline" class="btn btn-outline-primary font-weight-bolder w-100 w-md-auto py-2 mb-1"
                   type="submit" tabindex="7">
                   <i class="fa fa-magnifying-glass fa-lg fa-fw"></i>
@@ -420,8 +386,8 @@ Généalogies disponibles :<br>
 </div>"""
     
     def _get_css(self):
-        """CSS exactement comme dans css.txt et css.css"""
-        return """<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+      """CSS exactement comme dans css.txt et css.css, avec logo centré"""
+      return """<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 /* CSS exact de Geneweb */
@@ -459,7 +425,15 @@ Généalogies disponibles :<br>
 .border-top-0 { border-top: 0 !important; }
 .border-right-0 { border-right: 0 !important; }
 .border-left-0 { border-left: 0 !important; }
+
+/* Centrage du logo */
+.logo-container {
+    display: flex;
+    justify-content: center; /* centre horizontalement */
+    align-items: center;     /* centre verticalement */
+}
 </style>"""
+
     
     def _get_js(self):
         """JavaScript pour Bootstrap et fonctionnalités"""
