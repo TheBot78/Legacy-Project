@@ -25,36 +25,39 @@ GeneWeb is an open-source genealogy software with a web interface. This Python v
 ## 🏗️ Architecture
 
 ### Project Structure
+```
 geneweb/
-├── bin/                   # Executable scripts
-│   ├── gwd.py            # Main web server
-│   ├── gwc.py            # Database compiler
-│   ├── consang.py        # Consanguinity calculation
-│   ├── ged2gwb.py        # GEDCOM import
-│   ├── gwb2ged.py        # GEDCOM export
-│   └── gwu.py            # Database utilities
-├── lib/                   # Python libraries
-│   ├── init .py
-│   ├── adef.py           # Base definitions
-│   ├── definitions.py    # Types and structures
-│   ├── core/             # Business logic
-│   │   ├── consang.py    # Consanguinity calculations
+├── bin/                    # Executable scripts
+│   ├── gwd.py              # Main web server
+│   ├── gwc.py              # Database compiler
+│   ├── consang.py          # Consanguinity calculation
+│   ├── ged2gwb.py          # GEDCOM import
+│   ├── gwb2ged.py          # GEDCOM export
+│   └── gwu.py              # Database utilities
+├── lib/                    # Python libraries
+│   ├── __init__.py
+│   ├── adef.py             # Base definitions
+│   ├── definitions.py      # Types and structures
+│   ├── core/               # Business logic
+│   │   ├── consang.py      # Consanguinity calculations
 │   │   ├── consang_all.py
-│   │   └── gwdb.py       # Database interface
-│   ├── db/               # Data access layer
-│   │   ├── dbdisk.py     # Disk storage
-│   │   └── driver.py     # Database drivers
-│   └── util/             # Utilities
-│       ├── calendar.py   # Calendar management
-│       ├── date.py       # Date manipulation
-│       ├── lock.py       # Lock management
-│       ├── mutil.py      # Miscellaneous utilities
-│       ├── name.py       # Name processing
+│   │   └── gwdb.py         # Database interface
+│   ├── db/                 # Data access layer
+│   │   ├── dbdisk.py       # Disk storage
+│   │   └── driver.py       # Database drivers
+│   └── util/               # Utilities
+│       ├── calendar.py     # Calendar management
+│       ├── date.py         # Date manipulation
+│       ├── lock.py         # Lock management
+│       ├── mutil.py        # Miscellaneous utilities
+│       ├── name.py         # Name processing
 │       └── progress_bar.py # Progress bars
-├── hd/                    # Web templates and resources
-├── plugins/               # Extensions
-├── rpc/                   # RPC API
-└── test/                  # Unit tests
+├── hd/                     # Web templates and resources
+├── plugins/                # Extensions
+├── rpc/                    # RPC API
+└── test/                   # Unit tests
+```
+
 
 ### Main Components
 
