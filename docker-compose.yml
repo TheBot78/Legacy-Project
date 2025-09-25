@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  rpc:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: rpc_service
+    ports:
+      - "2316:2316"
+    networks:
+      - app-network
+
+  flask:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.flask
+    container_name: flask_front
+    ports:
+      - "5000:5000"
+    depends_on:
+      - rpc
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

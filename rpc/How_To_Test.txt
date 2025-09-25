@@ -2,9 +2,7 @@
 
 In the root of the project, run :
 
-sudo docker build -t geneweb-python -f docker/Dockerfile .
-
-docker run -p 2316:2316 geneweb-python
+docker compose up --build
 
 ==================================================
 
