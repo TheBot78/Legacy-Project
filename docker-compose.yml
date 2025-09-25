@@ -22,6 +22,11 @@ services:
       - rpc
     networks:
       - app-network
+    volumes:
+      - ./front:/app/front
+    environment:
+      - FLASK_ENV=development
+    command: python front/app.py
 
 networks:
   app-network:
