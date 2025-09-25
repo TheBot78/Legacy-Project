@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   rpc:
     build:
@@ -27,6 +25,21 @@ services:
     environment:
       - FLASK_ENV=development
     command: python front/app.py
+
+  geneweb:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.flask  # on peut réutiliser le Dockerfile Flask
+    container_name: geneweb_front
+    ports:
+      - "2317:5000"   # expose port 5000 du container sur 2317
+    networks:
+      - app-network
+    volumes:
+      - ./front:/app/front
+    environment:
+      - FLASK_ENV=development
+    command: python front/geneweb_app.py  # on crée un nouveau app.py pour GeneWeb
 
 networks:
   app-network:
