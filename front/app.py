@@ -22,7 +22,13 @@ def ping_rpc():
 
 @app.route("/geneweb")
 def geneweb():
-    return render_template("geneweb.html")
+    lang = request.args.get('lang', 'fr')
+    return render_template("geneweb.html", lang=lang)
+
+@app.route("/welcome")
+def welcome():
+    lang = request.args.get('lang', 'fr')
+    return render_template("welcome.html", lang=lang)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
