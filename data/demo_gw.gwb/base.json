@@ -1,0 +1,104 @@
+{
+  "magic": "PY_GWB_01",
+  "counts": {
+    "persons": 4,
+    "families": 1,
+    "strings": 13
+  },
+  "offsets": {
+    "persons_array_offset": 0,
+    "families_array_offset": 0,
+    "strings_array_offset": 0
+  },
+  "notes_origin_file": null,
+  "persons": [
+    {
+      "id": 0,
+      "surname_id": 0,
+      "first_name_ids": [
+        1,
+        2
+      ],
+      "sex_id": 3,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 1,
+      "surname_id": 4,
+      "first_name_ids": [
+        5,
+        6
+      ],
+      "sex_id": 7,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 2,
+      "surname_id": 0,
+      "first_name_ids": [
+        1,
+        8
+      ],
+      "sex_id": 3,
+      "father_id": 0,
+      "mother_id": 1,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 3,
+      "surname_id": 0,
+      "first_name_ids": [
+        9,
+        10
+      ],
+      "sex_id": 7,
+      "father_id": 0,
+      "mother_id": 1,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    }
+  ],
+  "families": [
+    {
+      "id": 0,
+      "husband_id": 0,
+      "wife_id": 1,
+      "children_ids": [
+        2,
+        3
+      ],
+      "marriage_date_id": 12,
+      "marriage_place_id": 11
+    }
+  ],
+  "strings": [
+    "Galichet",
+    "Jean",
+    "Pierre",
+    "M",
+    "Loche",
+    "Marie",
+    "Elisabeth",
+    "F",
+    "Charles",
+    "Therese",
+    "Eugenie",
+    "Paris",
+    "1870"
+  ]
+}
