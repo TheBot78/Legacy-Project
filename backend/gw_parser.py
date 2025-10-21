@@ -38,7 +38,10 @@ def _parse_name_pair(tokens: List[str], start_idx: int = 0) -> Tuple[int, str, L
 
 
 def _looks_date(tok: str) -> bool:
-    return bool(re.match(r"^[<~]?\d{1,2}/\d{1,2}/\d{2,4}$", tok) or re.match(r"^[<~]?\d{3,4}$", tok))
+    return bool(
+        re.match(r"^[<~]?\d{1,2}/\d{1,2}/\d{2,4}$", tok)
+        or re.match(r"^[<~]?\d{3,4}$", tok)
+    )
 
 
 def parse_gw_text(gw_text: str) -> Dict[str, object]:
@@ -54,7 +57,8 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
     sex_map: Dict[str, str] = {}
     notes_map: Dict[str, str] = {}
 
-    families_raw: List[Dict] = []  # {husband_key, wife_key, children_keys, marriage_date, marriage_place}
+    families_raw: List[Dict] = []
+    # husband_key, wife_key, children_keys, marriage_date, marriage_place
 
     # Helpers to get or create person
     def ensure_person(surname: str, first_names: List[str]) -> str:
@@ -83,20 +87,24 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
         if line.startswith("fam "):
             # Tokenize
             tokens = line.split()
-            # Parse husband (first two tokens after 'fam') until a control token ('#', '+', numeric marker)
+            # Parse husband: first two tokens after 'fam'
             # We keep heuristic: first two tokens are surname/firstnames
             _, hus_surname, hus_first = _parse_name_pair(tokens, 1)
             husband_key = ensure_person(hus_surname, hus_first)
             sex_map[husband_key] = "M"
 
             # Try to find wife near the end: last two non-control tokens
-            # Control tokens start with '#', or look like dates, or are '+' separators, or lone digits '0'
+            # Control tokens: '#', '+', '0', or date-like
             # We'll scan from the end to find two candidate name tokens
             wife_surname = None
             wife_first = []
             # Remove any trailing control tokens
             end_idx = len(tokens) - 1
-            while end_idx >= 0 and (tokens[end_idx].startswith('#') or tokens[end_idx] in {'+', 'od', '0'} or _looks_date(tokens[end_idx])):
+            while end_idx >= 0 and (
+                tokens[end_idx].startswith('#')
+                or tokens[end_idx] in {'+', 'od', '0'}
+                or _looks_date(tokens[end_idx])
+            ):
                 end_idx -= 1
             if end_idx >= 1:
                 wife_surname = _clean_token(tokens[end_idx - 1])
@@ -165,7 +173,11 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
                     while i < len(lines) and not lines[i].startswith("end"):
                         child_line = lines[i]
                         child_toks = child_line.split()
-                        if len(child_toks) >= 3 and child_toks[0] == '-' and child_toks[1] in {'h', 'f'}:
+                        if (
+                            len(child_toks) >= 3
+                            and child_toks[0] == '-'
+                            and child_toks[1] in {'h', 'f'}
+                        ):
                             gender = child_toks[1]
                             _, csurname, cfirst = _parse_name_pair(child_toks, 2)
                             ckey = ensure_person(csurname, cfirst)

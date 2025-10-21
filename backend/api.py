@@ -8,6 +8,7 @@ from .models import Person, Family, IdAllocator
 from .storage import write_gwb
 from .name_utils import crush_name
 from .gw_parser import parse_gw_text
+from .ged_parser import parse_ged_text
 from fastapi.responses import RedirectResponse
 
 
@@ -195,13 +196,23 @@ class GwImportGWRequest(BaseModel):
     notes_origin_file: Optional[str] = None
 
 
+class GwImportGEDRequest(BaseModel):
+    db_name: str
+    ged_text: str
+    notes_origin_file: Optional[str] = None
+
+
 @app.post("/parse_gw")
 def parse_gw(req: GwParseRequest):
     parsed = parse_gw_text(req.gw_text)
     persons = [p.__dict__ for p in parsed["persons"]]
     families = [f.__dict__ for f in parsed["families"]]
     return {
-        "counts": {"persons": len(persons), "families": len(families), "notes": len(parsed["notes"])},
+        "counts": {
+            "persons": len(persons),
+            "families": len(families),
+            "notes": len(parsed["notes"]),
+        },
         "persons": persons,
         "families": families,
         "notes": parsed["notes"],
@@ -213,11 +224,49 @@ def import_gw(req: GwImportGWRequest):
     parsed = parse_gw_text(req.gw_text)
     persons: List[Person] = parsed["persons"]
     families: List[Family] = parsed["families"]
-    db_dir = write_gwb(DATA_DIR, req.db_name, persons, families, req.notes_origin_file)
+    db_dir = write_gwb(
+        DATA_DIR,
+        req.db_name,
+        persons,
+        families,
+        req.notes_origin_file,
+    )
     return {
         "ok": True,
         "db_dir": str(db_dir),
-        "counts": {"persons": len(persons), "families": len(families)},
+        "counts": {
+            "persons": len(persons),
+            "families": len(families),
+        },
+        "persons": [p.__dict__ for p in persons],
+        "families": [f.__dict__ for f in families],
+        "notes": parsed.get("notes", {}),
+    }
+
+
+@app.post("/import_ged")
+def import_ged(req: GwImportGEDRequest):
+    parsed = parse_ged_text(req.ged_text)
+    persons: List[Person] = parsed["persons"]
+    families: List[Family] = parsed["families"]
+    db_dir = write_gwb(
+        DATA_DIR,
+        req.db_name,
+        persons,
+        families,
+        req.notes_origin_file,
+    )
+    # Create a textual .gw alongside the JSON base
+    from .storage import write_gw
+    gw_path = write_gw(DATA_DIR, req.db_name, persons, families)
+    return {
+        "ok": True,
+        "db_dir": str(db_dir),
+        "gw_path": str(gw_path),
+        "counts": {
+            "persons": len(persons),
+            "families": len(families),
+        },
         "persons": [p.__dict__ for p in persons],
         "families": [f.__dict__ for f in families],
         "notes": parsed.get("notes", {}),
