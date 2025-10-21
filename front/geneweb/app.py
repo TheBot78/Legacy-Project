@@ -1,10 +1,18 @@
 from flask import Flask, render_template, request, redirect, url_for
+import os
 
 app = Flask(
     __name__,
     static_folder="../static",
     template_folder="../templates"
 )
+
+def check_db_exists():
+    db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../db"))
+    if not os.path.exists(db_path):
+        return False
+    files = [f for f in os.listdir(db_path) if os.path.isfile(os.path.join(db_path, f))]
+    return len(files) > 0
 
 @app.route("/")
 def home():
@@ -13,7 +21,9 @@ def home():
 @app.route("/choose_genealogy")
 def choose_genealogy():
     lang = request.args.get("lang", "fr")
-    return render_template("choose_genealogy.html", lang=lang)
+    if not check_db_exists(): # If no database found, redirect to choose genealogy ottherwise main page
+        return render_template("choose_genealogy.html", lang=lang) # If no DB, show choose genealogy
+    return render_template("choose_genealogy.html", lang=lang) # If DB exists, show the Family Tree of this genealogy
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=2317, debug=True)
