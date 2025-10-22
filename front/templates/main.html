@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Menu</title>
+</head>
+<body>
+    <h1>Bienvenue sur le menu principal</h1>
+
+    <!-- Bouton pour GeneWeb -->
+    <button onclick="window.location.href='/geneweb'">Accéder à GeneWeb</button>
+
+    <!-- Bouton pour ping RPC -->
+    <button id="pingBtn">Ping RPC</button>
+    <p id="rpcResult"></p>
+
+    <script>
+        const pingBtn = document.getElementById('pingBtn');
+        const rpcResult = document.getElementById('rpcResult');
+
+        pingBtn.onclick = async () => {
+            try {
+                const res = await fetch('/ping_rpc');
+                const data = await res.json();
+                rpcResult.textContent = `Réponse RPC : ${data.result}`;
+            } catch (e) {
+                rpcResult.textContent = `Erreur RPC : ${e}`;
+            }
+        };
+    </script>
+</body>
+</html>

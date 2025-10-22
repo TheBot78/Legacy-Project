@@ -1,0 +1,59 @@
+services:
+  rpc:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: rpc_service
+    ports:
+      - "5050:2316"   # accès depuis l'extérieur sur 5050, container écoute 2316
+    networks:
+      - app-network
+
+  gwsetup:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.flask
+    container_name: gwsetup_front
+    ports:
+      - "2316:2316"
+    networks:
+      - app-network
+    volumes:
+      - ./front:/app/front
+    environment:
+      - FLASK_ENV=development
+    command: python /app/front/gwsetup/app.py
+
+  geneweb:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.flask
+    container_name: geneweb_front
+    ports:
+      - "2317:2317"
+    networks:
+      - app-network
+    volumes:
+      - ./front:/app/front
+    environment:
+      - FLASK_ENV=development
+    command: python /app/front/geneweb/app.py
+
+  start:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.flask
+    container_name: start_front
+    ports:
+      - "2315:2315"
+    networks:
+      - app-network
+    volumes:
+      - ./front:/app/front
+    environment:
+      - FLASK_ENV=development
+    command: python /app/front/start/start_app.py
+
+networks:
+  app-network:
+    driver: bridge

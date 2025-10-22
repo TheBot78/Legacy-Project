@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <!-- Copyright (c) 1998-2006 INRIA - GeneWeb -->
+  <!-- $Id: welcome.htm,v 7.00 2018-04-19 05:35:06 ddr Exp $ -->
+  <meta charset="utf-8">
+  <meta name="robots" content="none">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon_gwsetup.png') }}">
+
+  <title>GeneWeb - Gwsetup</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f5f5f5;
+    }
+    .welcome {
+      background-color: white;
+      padding: 20px;
+      border: 1px solid #ccc;
+      margin: 20px 0;
+    }
+    .welcome div {
+      margin-bottom: 20px;
+    }
+    .welcome ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .welcome li {
+      margin: 5px 0;
+    }
+    a {
+      color: #2f6400;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    hr {
+      border: 1px solid #ccc;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+
+<body>
+
+<div style="background:url('{{ url_for('static', filename='images/gwlogo.png') }}') no-repeat left top;
+  text-align:center; height:95px; line-height:95px; color:#2f6400;">
+<h1 style="margin:0;">Gestion et création</h1>
+</div>
+<p>
+<div class="welcome">
+  <div style="float:left; width:50%">
+    <div>
+      <span style="font-weight:bold">Consulter</span>
+      <ul>
+        <li>les généalogies existantes (<a href="#">list</a>)
+        <li>l'historique des erreurs et statistiques (<a href="#">errors</a>)
+      </ul>
+    </div>
+    <div>
+      <span style="font-weight:bold">Sauvegarder</span>
+      <ul>
+        <li>un fichier source GEDCOM (<a href="#">gwb2ged</a>)
+        <li>un fichier source GeneWeb (<a href="#">gwu</a>)
+      </ul>
+    </div>
+  </div>
+  <div style="float:left; width:50%;">
+    <span style="font-weight:bold;">Créer une généalogie</span>
+    <ul>
+      <li>à partir d'un fichier source GEDCOM (<a href="#">ged2gwb</a>)
+      <li>à partir d'un fichier source GeneWeb (<a href="#">gwc</a>)
+      <li>à partir d'un fichier vide (<a href="#">gwc</a>)
+    </ul>
+  </div>
+</div>
+<br><hr><br>
+<div>
+  <div style="float:left;">
+    <span><b>Options avancées</b></span>
+    <ul>
+      <li>Nettoyage (<a href="#">cleanup</a>)
+      <li>Renommage (<a href="#">rename</a>)
+      <li>Suppression (<a href="#">delete</a>)
+      <li>Fusion de généalogies (<a href="#">merge</a>)
+      <li>Sauvegarde et restauration (<a href="#">gwu</a>)
+      <li>Calcul de la consanguinité (<a href="#">consang</a>)
+      <li>Mise à jour des liens fiche/chronique familiale (<a href="#">update_nldb</a>)
+      <li>Calcule les composantes connexes (<a href="#">connex</a>)
+      <li>Calcule la différence entre deux bases (<a href="#">gwdiff</a>)
+      <li>Corrige les problèmes d'une base (<a href="#">gwfixbase</a>)
+    </ul>
+  </div>
+  <div style="float:left;">
+    <span><b>Configurer</b></span>
+    <ul>
+      <li>Les paramètres d'une base de données (<a href="#">.gwf</a>)
+      <li>Les paramètres du service gwd (<a href="#">gwd</a>)
+      <li>Les fichiers cache de noms et places pour l'auto-completion (<a href="#">cache_files</a>)
+    </ul>
+  </div>
+</div>
+<p style="clear:both">
+<p>
+Vous pouvez également consulter la documentation complète de GeneWeb. (<a href="#">doc</a>)
+<br><br>
+<div style="float: left; align: center;">
+  <span>Afficher en:</span>
+  <a href="/welcome?lang=co">Corsu</a>
+  <a href="/welcome?lang=de">Deutsch</a>
+  <a href="/welcome?lang=en">English</a>
+  <a href="/welcome?lang=es">Español</a>
+  <a href="/welcome?lang=fr">Français</a>
+  <a href="/welcome?lang=it">Italiano</a>
+  <a href="/welcome?lang=lv">Latviesu</a>
+  <a href="/welcome?lang=sv">Svenska</a>
+</div>
+
+<div style="clear: both; margin-top: 50px; text-align: center; font-size: 12px; color: #666;">
+  <img src="{{ url_for('static', filename='images/gwlogo.png') }}" alt="GeneWeb" style="height: 20px; vertical-align: middle;">
+  Version 7.1-beta Copyright © 1998-2021
+</div>
+
+</body>
+</html>

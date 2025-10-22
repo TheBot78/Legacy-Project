@@ -1,0 +1,22 @@
+# How to build and test the RPC server
+
+In the root of the project, run :
+
+docker compose up --build
+
+==================================================
+
+# Postman
+
+POST : http://localhost:2316/rpc
+
+body :
+{
+  "method": "ping",
+  "params": {}
+}
+
+result :
+{
+    "result": "pong"
+}
