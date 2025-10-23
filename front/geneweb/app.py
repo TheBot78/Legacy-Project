@@ -25,5 +25,10 @@ def choose_genealogy():
         return render_template("choose_genealogy.html", lang=lang) # If no DB, show choose genealogy
     return render_template("choose_genealogy.html", lang=lang) # If DB exists, show the Family Tree of this genealogy
 
+@app.errorhandler(404)
+def page_not_found(e):
+    lang = request.args.get("lang", "fr")
+    return render_template("404.html", lang=lang, path=request.path), 404
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=2317, debug=True)
