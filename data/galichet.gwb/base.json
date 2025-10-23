@@ -1,0 +1,848 @@
+{
+  "magic": "PY_GWB_01",
+  "counts": {
+    "persons": 41,
+    "families": 15,
+    "strings": 93
+  },
+  "offsets": {
+    "persons_array_offset": 0,
+    "families_array_offset": 0,
+    "strings_array_offset": 0
+  },
+  "notes_origin_file": null,
+  "persons": [
+    {
+      "id": 0,
+      "surname_id": 0,
+      "first_name_ids": [
+        1,
+        2
+      ],
+      "sex_id": 3,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 1,
+      "surname_id": 4,
+      "first_name_ids": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "sex_id": 14,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 2,
+      "surname_id": 15,
+      "first_name_ids": [
+        16
+      ],
+      "sex_id": 3,
+      "father_id": 0,
+      "mother_id": 1,
+      "birth_date_id": 17,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 3,
+      "surname_id": 2,
+      "first_name_ids": [
+        18
+      ],
+      "sex_id": 3,
+      "father_id": 0,
+      "mother_id": 1,
+      "birth_date_id": 19,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 4,
+      "surname_id": 20,
+      "first_name_ids": [
+        21
+      ],
+      "sex_id": 3,
+      "father_id": 0,
+      "mother_id": 1,
+      "birth_date_id": 22,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 5,
+      "surname_id": 23,
+      "first_name_ids": [
+        4
+      ],
+      "sex_id": 3,
+      "father_id": 0,
+      "mother_id": 1,
+      "birth_date_id": 24,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 6,
+      "surname_id": 25,
+      "first_name_ids": [
+        4
+      ],
+      "sex_id": 14,
+      "father_id": 0,
+      "mother_id": 1,
+      "birth_date_id": 26,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 7,
+      "surname_id": 0,
+      "first_name_ids": [
+        20
+      ],
+      "sex_id": 3,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 8,
+      "surname_id": 4,
+      "first_name_ids": [
+        27
+      ],
+      "sex_id": 14,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 9,
+      "surname_id": 28,
+      "first_name_ids": [
+        29
+      ],
+      "sex_id": 3,
+      "father_id": 7,
+      "mother_id": 8,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 10,
+      "surname_id": 30,
+      "first_name_ids": [
+        31
+      ],
+      "sex_id": 14,
+      "father_id": 7,
+      "mother_id": 8,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 11,
+      "surname_id": 0,
+      "first_name_ids": [
+        23
+      ],
+      "sex_id": 3,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 12,
+      "surname_id": 4,
+      "first_name_ids": [
+        32
+      ],
+      "sex_id": 14,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 13,
+      "surname_id": 33,
+      "first_name_ids": [
+        34
+      ],
+      "sex_id": 3,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 14,
+      "surname_id": 0,
+      "first_name_ids": [
+        35
+      ],
+      "sex_id": 14,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 15,
+      "surname_id": 34,
+      "first_name_ids": [
+        36
+      ],
+      "sex_id": 3,
+      "father_id": 13,
+      "mother_id": 14,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 16,
+      "surname_id": 37,
+      "first_name_ids": [
+        38
+      ],
+      "sex_id": 14,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 17,
+      "surname_id": 39,
+      "first_name_ids": [
+        40
+      ],
+      "sex_id": 14,
+      "father_id": 13,
+      "mother_id": 16,
+      "birth_date_id": 41,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 18,
+      "surname_id": 42,
+      "first_name_ids": [
+        1
+      ],
+      "sex_id": 3,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 19,
+      "surname_id": 33,
+      "first_name_ids": [
+        39
+      ],
+      "sex_id": 14,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 20,
+      "surname_id": 38,
+      "first_name_ids": [
+        43
+      ],
+      "sex_id": 14,
+      "father_id": 18,
+      "mother_id": 19,
+      "birth_date_id": 44,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 21,
+      "surname_id": 45,
+      "first_name_ids": [
+        1
+      ],
+      "sex_id": 3,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 22,
+      "surname_id": 42,
+      "first_name_ids": [
+        38
+      ],
+      "sex_id": 14,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 23,
+      "surname_id": 46,
+      "first_name_ids": [
+        47
+      ],
+      "sex_id": 14,
+      "father_id": 21,
+      "mother_id": 22,
+      "birth_date_id": 48,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 24,
+      "surname_id": 49,
+      "first_name_ids": [
+        50
+      ],
+      "sex_id": 3,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 25,
+      "surname_id": 51,
+      "first_name_ids": [
+        52
+      ],
+      "sex_id": 14,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 26,
+      "surname_id": 50,
+      "first_name_ids": [
+        16
+      ],
+      "sex_id": 3,
+      "father_id": 24,
+      "mother_id": 25,
+      "birth_date_id": 53,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 27,
+      "surname_id": 45,
+      "first_name_ids": [
+        46
+      ],
+      "sex_id": 14,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 28,
+      "surname_id": 54,
+      "first_name_ids": [
+        16
+      ],
+      "sex_id": 3,
+      "father_id": 24,
+      "mother_id": 27,
+      "birth_date_id": 55,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 29,
+      "surname_id": 49,
+      "first_name_ids": [
+        54
+      ],
+      "sex_id": 3,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 30,
+      "surname_id": 56,
+      "first_name_ids": [
+        46
+      ],
+      "sex_id": 14,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 31,
+      "surname_id": 57,
+      "first_name_ids": [
+        16
+      ],
+      "sex_id": 3,
+      "father_id": 29,
+      "mother_id": 30,
+      "birth_date_id": 58,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 32,
+      "surname_id": 59,
+      "first_name_ids": [
+        60
+      ],
+      "sex_id": 14,
+      "father_id": 29,
+      "mother_id": 30,
+      "birth_date_id": 61,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 33,
+      "surname_id": 49,
+      "first_name_ids": [
+        57
+      ],
+      "sex_id": 3,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 34,
+      "surname_id": 62,
+      "first_name_ids": [
+        63,
+        64
+      ],
+      "sex_id": 14,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 35,
+      "surname_id": 65,
+      "first_name_ids": [
+        66,
+        67
+      ],
+      "sex_id": 3,
+      "father_id": 33,
+      "mother_id": 34,
+      "birth_date_id": 68,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 36,
+      "surname_id": 4,
+      "first_name_ids": [
+        63,
+        64
+      ],
+      "sex_id": 14,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 37,
+      "surname_id": 4,
+      "first_name_ids": [
+        63,
+        69
+      ],
+      "sex_id": 14,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 38,
+      "surname_id": 49,
+      "first_name_ids": [
+        65
+      ],
+      "sex_id": 3,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 39,
+      "surname_id": 70,
+      "first_name_ids": [
+        71
+      ],
+      "sex_id": 14,
+      "father_id": null,
+      "mother_id": null,
+      "birth_date_id": null,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    },
+    {
+      "id": 40,
+      "surname_id": 72,
+      "first_name_ids": [
+        73
+      ],
+      "sex_id": 14,
+      "father_id": 38,
+      "mother_id": 39,
+      "birth_date_id": 74,
+      "birth_place_id": null,
+      "death_date_id": null,
+      "death_place_id": null
+    }
+  ],
+  "families": [
+    {
+      "id": 0,
+      "husband_id": 0,
+      "wife_id": 1,
+      "children_ids": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "marriage_date_id": null,
+      "marriage_place_id": null
+    },
+    {
+      "id": 1,
+      "husband_id": 7,
+      "wife_id": 8,
+      "children_ids": [
+        9,
+        10
+      ],
+      "marriage_date_id": 75,
+      "marriage_place_id": null
+    },
+    {
+      "id": 2,
+      "husband_id": 11,
+      "wife_id": 12,
+      "children_ids": [],
+      "marriage_date_id": 77,
+      "marriage_place_id": 76
+    },
+    {
+      "id": 3,
+      "husband_id": 11,
+      "wife_id": 12,
+      "children_ids": [],
+      "marriage_date_id": 79,
+      "marriage_place_id": 78
+    },
+    {
+      "id": 4,
+      "husband_id": 13,
+      "wife_id": 14,
+      "children_ids": [
+        15
+      ],
+      "marriage_date_id": 81,
+      "marriage_place_id": 80
+    },
+    {
+      "id": 5,
+      "husband_id": 13,
+      "wife_id": 16,
+      "children_ids": [
+        17
+      ],
+      "marriage_date_id": null,
+      "marriage_place_id": 80
+    },
+    {
+      "id": 6,
+      "husband_id": 18,
+      "wife_id": 19,
+      "children_ids": [
+        20
+      ],
+      "marriage_date_id": null,
+      "marriage_place_id": null
+    },
+    {
+      "id": 7,
+      "husband_id": 21,
+      "wife_id": 22,
+      "children_ids": [
+        23
+      ],
+      "marriage_date_id": null,
+      "marriage_place_id": null
+    },
+    {
+      "id": 8,
+      "husband_id": 24,
+      "wife_id": 25,
+      "children_ids": [
+        26
+      ],
+      "marriage_date_id": null,
+      "marriage_place_id": null
+    },
+    {
+      "id": 9,
+      "husband_id": 24,
+      "wife_id": 27,
+      "children_ids": [
+        28
+      ],
+      "marriage_date_id": 82,
+      "marriage_place_id": 80
+    },
+    {
+      "id": 10,
+      "husband_id": 29,
+      "wife_id": 30,
+      "children_ids": [
+        31,
+        32
+      ],
+      "marriage_date_id": 84,
+      "marriage_place_id": 83
+    },
+    {
+      "id": 11,
+      "husband_id": 33,
+      "wife_id": 34,
+      "children_ids": [
+        35
+      ],
+      "marriage_date_id": 86,
+      "marriage_place_id": 85
+    },
+    {
+      "id": 12,
+      "husband_id": 33,
+      "wife_id": 36,
+      "children_ids": [],
+      "marriage_date_id": 88,
+      "marriage_place_id": 87
+    },
+    {
+      "id": 13,
+      "husband_id": 33,
+      "wife_id": 37,
+      "children_ids": [],
+      "marriage_date_id": 90,
+      "marriage_place_id": 89
+    },
+    {
+      "id": 14,
+      "husband_id": 38,
+      "wife_id": 39,
+      "children_ids": [
+        40
+      ],
+      "marriage_date_id": 92,
+      "marriage_place_id": 91
+    }
+  ],
+  "strings": [
+    "Galichet",
+    "Jean",
+    "Pierre",
+    "M",
+    "#src",
+    "déjà",
+    "décédés",
+    "au",
+    "mariage",
+    "de",
+    "sa",
+    "fille",
+    "Thérèse",
+    "Eugénie",
+    "F",
+    "Jean Charles",
+    "#occu",
+    "1813",
+    "1814",
+    "1/1/1835",
+    "Paul",
+    "1816",
+    "1/1/1886",
+    "lolo",
+    "1818",
+    "Thérèse Eugénie",
+    "7/9/1830",
+    "archives",
+    "Jean-Paul",
+    "2/2/1836",
+    "Laure",
+    "1839",
+    "inventé",
+    "Sutaine",
+    "Louis",
+    "Nicole",
+    "1575",
+    "Petizon",
+    "Claude",
+    "Perrette",
+    "1600",
+    "11/4/1684",
+    "Jayot",
+    "27/6/1633",
+    "11/4/1697",
+    "Boizot",
+    "Jeanne",
+    "27/2/1671",
+    "22/4/1748",
+    "Geruzet",
+    "Anthoine",
+    "Bouquet",
+    "Louise",
+    "1667",
+    "Jacques",
+    "4/2/1705",
+    "Pierquin",
+    "Laurent",
+    "25/9/1738",
+    "Marie-Jeanne",
+    "31/12/1751",
+    "8/1/1830",
+    "#ds",
+    "base",
+    "michelbonnet",
+    "Jean-Baptiste",
+    "{Jean-Baptiste",
+    "Laurent}",
+    "23/9/1768",
+    "michelbonnetg",
+    "Biemont",
+    "Marie",
+    "Laurence",
+    "23/1/1802",
+    "18/4/1866",
+    "3/3/1835",
+    "Brisbane,Queensland,Australie",
+    "1840",
+    "Sydney,Nouvelle-Galles du Sud,Australie",
+    "1845",
+    "[Saint-Jacques] - Reims,51,Marne,Champagne-Ardenne,France",
+    "1570",
+    "17/1/1695",
+    "[Saint Pierre] - Reims,51,Marne,Champagne-Ardenne,France",
+    "2/8/1728",
+    "[Eglise St Rémi] - Laon,02,Aisne,Picardie,France",
+    "28/12/1763",
+    "Reims,51,Marne,Champagne-Ardenne,France",
+    "25/3/1786",
+    "Paris,75000,Ville-de-Paris,Ile-de-France,France",
+    "30/10/1794",
+    "[Mairie] - Reims,51,Marne,Champagne-Ardenne,France",
+    "21/12/2F"
+  ]
+}
