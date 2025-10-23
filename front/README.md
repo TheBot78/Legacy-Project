@@ -1,93 +1,94 @@
-# GeneWeb Front – Guide de démarrage
+# GeneWeb Front – Quick Start Guide
 
-Ce dossier contient les applications Flask qui fournissent les pages d’accueil et d’administration côté front de GeneWeb.
+This folder contains the Flask applications that serve GeneWeb's front pages.
 
-## Aperçu
-- Trois applications Flask:
-  - `start` (port `2315`): page d’accueil multilingue (`geneweb.html`).
-  - `gwsetup` (port `2316`): page de gestion/creation (`welcome.html`).
-  - `geneweb` (port `2317`): accès aux arbres (`choose_genealogy.html`).
-- Un service RPC (port `5050` mappé vers `2316` en container) pour les appels JSON.
-- Templates HTML sous `front/templates` et assets sous `front/static`.
+## Overview
+- Three Flask apps:
+  - `start` (port `2315`): landing page (`geneweb.html`).
+  - `gwsetup` (port `2316`): setup/management page (`welcome.html`).
+  - `geneweb` (port `2317`): genealogy access (`choose_genealogy.html`).
+- One RPC service (external port `5050`, mapped to container `2316`) for JSON calls.
+- HTML templates under `front/templates` and assets under `front/static`.
 
-## Prérequis
-- Docker Desktop installé et démarré.
-- Optionnel (développement local hors Docker): Python 3.11 et `pip`.
+## Prerequisites
+- Docker Desktop installed and running.
+- Optional (local dev without Docker): Python 3.11 and `pip`.
 
-## Démarrage rapide (Docker)
-- Depuis la racine du projet:
+## Quick Start (Docker)
+From the project root:
+- Build and start:
   - `docker compose up --build`
-  - ou en mode détaché: `docker compose up -d --build`
-- Services et URLs:
+  - or detached: `docker compose up -d --build`
+- Services and URLs:
   - `start`: `http://localhost:2315/`
   - `gwsetup`: `http://localhost:2316/welcome?lang=fr`
   - `geneweb`: `http://localhost:2317/`
   - `rpc`: POST `http://localhost:5050/rpc`
-- Redémarrer après modifications:
+- Restart after changes:
   - `docker compose restart start gwsetup geneweb rpc`
-- Voir l’état:
+- Check status:
   - `docker compose ps`
 
-## Accès aux pages
-- `start` affiche `geneweb.html` et détecte automatiquement la langue du navigateur.
-- `gwsetup` redirige `/` vers `/welcome` et accepte `?lang=xx`.
-- `geneweb` redirige `/` vers `/choose_genealogy` et accepte `?lang=xx`.
-- `front/app.py` (non utilisé par Docker Compose) propose une page principale et un ping RPC si lancé seul.
+## Page Access
+- `start` serves `geneweb.html` and auto-detects browser language.
+- `gwsetup` redirects `/` to `/welcome` and accepts `?lang=xx`.
+- `geneweb` redirects `/` to `/choose_genealogy` and accepts `?lang=xx`.
+- `front/app.py` (not used by Docker Compose) provides a simple main page and RPC ping if run standalone.
 
-## Développement local (sans Docker)
-1. Installer les dépendances:
+## Local Development (without Docker)
+1. Install dependencies:
    - `pip install -r front/requirements.txt`
-2. Lancer chaque app séparément:
+2. Run each app separately:
    - Start: `python front/start/start_app.py` → `http://localhost:2315/`
    - Gwsetup: `python front/gwsetup/app.py` → `http://localhost:2316/welcome?lang=fr`
    - Geneweb: `python front/geneweb/app.py` → `http://localhost:2317/`
 
-## Structure du front
+## Front Structure
 - `front/templates/`:
-  - `geneweb.html`: page d’accueil multilingue.
-  - `welcome.html`: page de gestion (gwsetup).
-  - `choose_genealogy.html`: sélection/accès aux bases.
-  - `main.html`: menu simple (utilisé par `front/app.py`).
-  - `404.html`: page d’erreur personnalisée pour routes inconnues.
-- `front/static/`: images, css, fichiers de langues.
+  - `geneweb.html`: multilingual landing page.
+  - `welcome.html`: setup page (gwsetup).
+  - `choose_genealogy.html`: select/access databases.
+  - `main.html`: simple menu (used by `front/app.py`).
+  - `404.html`: custom error page for unknown routes.
+- `front/static/`: images, css, language files.
 
-## Internationalisation
-- Les pages supportent `?lang=de|en|es|fr|it|lv|nl|no|fi|sv`.
-- Les liens dans `geneweb.html` passent `lang` pour ouvrir les pages dans la langue souhaitée.
+## Internationalization
+- Pages support `?lang=de|en|es|fr|it|lv|nl|no|fi|sv`.
+- Links in `geneweb.html` preserve `lang` to open pages in the selected language.
 
-## Erreurs 404
-- Une page 404 personnalisée (`front/templates/404.html`) est rendue par chaque app Flask.
-- Exemple: `http://localhost:2316/nonexistent` affiche la 404 avec liens utiles.
-- Le service RPC renvoie un JSON structuré pour 404:
+## 404 Errors
+- A shared custom 404 page (`front/templates/404.html`) is rendered by each Flask app.
+- Example: `http://localhost:2316/nonexistent` shows the helpful 404 page.
+- The RPC service returns a structured JSON for 404:
   ```json
   {"error":"Not Found","detail":"Endpoint not found","path":"/missing"}
   ```
 
-## Journalisation et débogage
-- Voir les logs:
+## Logging and Debugging
+- Tail logs:
   - `docker compose logs -f start`
   - `docker compose logs -f gwsetup`
   - `docker compose logs -f geneweb`
   - `docker compose logs -f rpc`
-- Les containers montent `./front` en volume: modifications des templates visibles immédiatement (Flask en mode debug).
+- Containers mount `./front` as a volume: template changes are visible immediately (Flask debug).
 
-## Dépannage
-- Port déjà utilisé: changer les ports dans `docker-compose.yml` ou arrêter le processus en conflit.
-- Page "Not Found" par défaut: vérifier que le container a bien redémarré et que les handlers 404 sont chargés.
-- Ressources statiques: les chemins dans les templates utilisent `static/...`; vérifier que `front/static` est présent.
+## Troubleshooting
+- Port in use: change ports in `docker-compose.yml` or stop the conflicting process.
+- Default "Not Found" page appears: ensure the container restarted and 404 handlers loaded.
+- Static assets: templates use `url_for('static', ...)`; verify files exist in `front/static`.
 
-## RPC – Ping de test
-- Requête:
+## RPC – Ping Test
+- Request:
   ```bash
   curl -X POST http://localhost:5050/rpc \
     -H "Content-Type: application/json" \
     -d '{"method":"ping","params":{}}'
   ```
-- Réponse:
+- Response:
   ```json
   {"result":"pong"}
   ```
 
 ## Notes
-- `welcome.html` contient beaucoup de liens hérités du projet GeneWeb; pour une navigation intégrée Flask, utilisez `url_for` et passez `lang` si nécessaire.
-- Les pages et styles peuvent être harmonisés via `front/templates/base.html` si besoin.
+- `welcome.html` includes many legacy GeneWeb links; for consistent Flask navigation, prefer `url_for` and pass `lang` when relevant.
+- Use `front/templates/base.html` to unify layout and navigation across pages if desired.
