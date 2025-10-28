@@ -1,6 +1,7 @@
-import os  # <-- AJOUTEZ CET IMPORT
+import os
 import requests
 from flask import Flask, render_template, request, redirect, url_for
+# Assurez-vous que path.py est au bon endroit pour être importé
 from path import list_dir, BASE_DIR
 
 app = Flask(
@@ -8,6 +9,8 @@ app = Flask(
     static_folder="../static",
     template_folder="../templates"
 )
+
+# --- Routes de base ---
 
 @app.route("/")
 def home():
@@ -18,116 +21,214 @@ def welcome():
     lang = request.args.get("lang", "fr")
     return render_template("welcome.html", lang=lang)
 
-@app.route("/ged2gwb")
+# --- Flux GED2GWB ---
+
+@app.route("/ged2gwb", methods=['GET', 'POST'])
 def ged2gwb():
-    lang = request.args.get("lang", "en")
+    lang = request.args.get("lang", request.form.get("lang", "en"))
 
-    # VÉRIFIE SI L'UTILISATEUR A CLIQUE SUR "OK"
-    if request.args.get("opt") == "check":
-        # --- C'est la nouvelle logique de confirmation ---
+    # --- Logique POST (quand on confirme la création) ---
+    if request.method == 'POST':
+        if request.form.get("cancel"):
+            return redirect(url_for('welcome'))
 
-        # Récupère le chemin du fichier sélectionné
-        filepath = request.args.get("filepath", "")
+        filepath = request.form.get("anon", "").strip()
+        db_name = request.form.get("o", "").strip()
 
-        # Récupère le nom de la base (-o)
-        db_name = request.args.get("o", "")
+        if not filepath:
+            return render_template(
+                "management_creation/ged2gwb_confirm.html",
+                lang=lang, filepath=filepath, db_name=db_name,
+                all_options=request.form.to_dict(),
+                error="Aucun fichier GEDCOM sélectionné"
+            )
 
-        # Si le nom de la base est vide, déduisez-le du nom du fichier
-        if not db_name and filepath:
-            # os.path.basename('/host_files/foo.ged') -> 'foo.ged'
-            basename = os.path.basename(filepath)
-            # os.path.splitext('foo.ged') -> ('foo', '.ged')
-            db_name = os.path.splitext(basename)[0]
-
-        all_options = request.args.to_dict()
-        all_options['o'] = db_name
-
-        return render_template(
-            "management_creation/ged2gwb_confirm.html",
-            lang=lang,
-            filepath=filepath,     # Pour afficher la commande (ex: /host_files/foo.ged)
-            db_name=db_name,       # Pour afficher le nom (ex: foo)
-            all_options=all_options # Dictionnaire de toutes les options pour le formulaire caché
-        )
-
-    else:
-        sel = request.args.get("sel", BASE_DIR)
-        abs_sel, items, parent = list_dir(sel)
-        return render_template(
-            "management_creation/ged2gwb.html",
-            sel=abs_sel,
-            items=items,
-            parent=parent,
-            lang=lang
-        )
-
-@app.route("/ged2gwb", methods=["POST"])
-def ged2gwb_post():
-    lang = request.form.get("lang", "en")
-    filepath = request.form.get("anon", "").strip()
-    db_name = request.form.get("o", "").strip()
-
-    if not filepath:
-        return render_template(
-            "management_creation/ged2gwb_confirm.html",
-            lang=lang,
-            filepath=filepath,
-            db_name=db_name or "",
-            all_options=request.form.to_dict(),
-            error="Aucun fichier GEDCOM sélectionné",
-        )
-
-    # Lecture du contenu GEDCOM
-    try:
-        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
-            ged_text = f.read()
-    except Exception as e:
-        return render_template(
-            "management_creation/ged2gwb_confirm.html",
-            lang=lang,
-            filepath=filepath,
-            db_name=db_name or "",
-            all_options=request.form.to_dict(),
-            error=str(e),
-        )
-
-    # Appel au backend avec fallback (localhost et host.docker.internal)
-    candidates = []
-    if os.environ.get("BACKEND_URL"):
-        candidates.append(os.environ.get("BACKEND_URL"))
-    candidates.append("http://127.0.0.1:8000/import_ged")
-    candidates.append("http://localhost:8000/import_ged")
-    candidates.append("http://host.docker.internal:8000/import_ged")
-
-    last_error = None
-    for backend_url in candidates:
         try:
-            resp = requests.post(backend_url, json={
-                "db_name": db_name,
-                "ged_text": ged_text,
-                "notes_origin_file": filepath,
-            }, timeout=20)
-            data = resp.json()
-            if data.get("ok"):
-                return redirect(url_for("ged2gwb_result", db=db_name, lang=lang))
-            last_error = f"Backend error: {data}"
+            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                ged_text = f.read()
         except Exception as e:
-            last_error = str(e)
+            return render_template(
+                "management_creation/ged2gwb_confirm.html",
+                lang=lang, filepath=filepath, db_name=db_name,
+                all_options=request.form.to_dict(), error=str(e)
+            )
 
-    return render_template(
-        "management_creation/ged2gwb_confirm.html",
-        lang=lang,
-        filepath=filepath,
-        db_name=db_name or "",
-        all_options=request.form.to_dict(),
-        error=f"Appel backend échoué: {last_error}",
-    )
+        candidates = []
+        if os.environ.get("BACKEND_URL"):
+            candidates.append(os.environ.get("BACKEND_URL"))
+        candidates.append("http://127.0.0.1:8000")
+        candidates.append("http://localhost:8000")
+        candidates.append("http://host.docker.internal:8000")
+
+        last_error = None
+        for base_url in candidates:
+            try:
+                backend_url = f"{base_url.rstrip('/')}/import_ged"
+                resp = requests.post(backend_url, json={
+                    "db_name": db_name,
+                    "ged_text": ged_text,
+                    "notes_origin_file": filepath,
+                }, timeout=20)
+                data = resp.json()
+                if data.get("ok"):
+                    return redirect(url_for("ged2gwb_result", db=db_name, lang=lang))
+                last_error = f"Backend error: {data}"
+            except Exception as e:
+                last_error = str(e)
+
+        return render_template(
+            "management_creation/ged2gwb_confirm.html",
+            lang=lang, filepath=filepath, db_name=db_name,
+            all_options=request.form.to_dict(),
+            error=f"Appel backend échoué: {last_error}"
+        )
+
+    # --- Logique GET (navigation ou première soumission) ---
+    else:
+        if request.args.get("opt") == "check":
+            filepath = request.args.get("filepath", "")
+            db_name = request.args.get("o", "")
+
+            if not db_name and filepath:
+                basename = os.path.basename(filepath)
+                db_name = os.path.splitext(basename)[0]
+
+            all_options = request.args.to_dict()
+            all_options['o'] = db_name
+
+            return render_template(
+                "management_creation/ged2gwb_confirm.html",
+                lang=lang,
+                filepath=filepath,
+                db_name=db_name,
+                all_options=all_options
+            )
+        else:
+            sel = request.args.get("sel", BASE_DIR)
+            abs_sel, items, parent = list_dir(sel)
+            return render_template(
+                "management_creation/ged2gwb.html",
+                sel=abs_sel, items=items, parent=parent, lang=lang
+            )
 
 @app.route("/ged2gwb_result")
 def ged2gwb_result():
     lang = request.args.get("lang", "en")
     db_name = request.args.get("db")
+    stats, error = get_db_stats(db_name)
+    
+    return render_template(
+        "management_creation/ged2gwb_result.html",
+        lang=lang, db_name=db_name, stats=stats, error=error
+    )
 
+
+# --- Flux GWC (C'est la partie qui manquait) ---
+
+@app.route("/gwc", methods=['GET', 'POST'])
+def gwc():
+    lang = request.args.get("lang", request.form.get("lang", "en"))
+
+    # --- Logique POST (quand on confirme la création) ---
+    if request.method == 'POST':
+        if request.form.get("cancel"):
+            return redirect(url_for('welcome'))
+
+        filepath = request.form.get("anon", "").strip()
+        db_name = request.form.get("o", "").strip()
+
+        if not filepath:
+            return render_template(
+                "management_creation/gwc_confirm.html",
+                lang=lang, filepath=filepath, db_name=db_name,
+                all_options=request.form.to_dict(),
+                error="Aucun fichier .gw sélectionné"
+            )
+
+        try:
+            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                gw_text = f.read()
+        except Exception as e:
+            return render_template(
+                "management_creation/gwc_confirm.html",
+                lang=lang, filepath=filepath, db_name=db_name,
+                all_options=request.form.to_dict(), error=str(e)
+            )
+
+        candidates = []
+        if os.environ.get("BACKEND_URL"):
+            candidates.append(os.environ.get("BACKEND_URL"))
+        candidates.append("http://127.0.0.1:8000")
+        candidates.append("http://localhost:8000")
+        candidates.append("http://host.docker.internal:8000")
+
+        last_error = None
+        for base_url in candidates:
+            try:
+                backend_url = f"{base_url.rstrip('/')}/import_gw"
+                resp = requests.post(backend_url, json={
+                    "db_name": db_name,
+                    "gw_text": gw_text, 
+                    "notes_origin_file": filepath,
+                }, timeout=20)
+                data = resp.json()
+                if data.get("ok"):
+                    return redirect(url_for("gwc_result", db=db_name, lang=lang))
+                last_error = f"Backend error: {data}"
+            except Exception as e:
+                last_error = str(e)
+
+        return render_template(
+            "management_creation/gwc_confirm.html",
+            lang=lang, filepath=filepath, db_name=db_name,
+            all_options=request.form.to_dict(),
+            error=f"Appel backend échoué: {last_error}"
+        )
+
+    # --- Logique GET (navigation ou première soumission) ---
+    else:
+        if request.args.get("opt") == "check":
+            filepath = request.args.get("fname", "") 
+            db_name = request.args.get("o", "")
+
+            if not db_name and filepath:
+                basename = os.path.basename(filepath)
+                db_name = os.path.splitext(basename)[0]
+
+            all_options = request.args.to_dict()
+            all_options['o'] = db_name
+
+            return render_template(
+                "management_creation/gwc_confirm.html",
+                lang=lang,
+                filepath=filepath,
+                db_name=db_name,
+                all_options=all_options
+            )
+        else:
+            sel = request.args.get("sel", BASE_DIR)
+            abs_sel, items, parent = list_dir(sel)
+            return render_template(
+                "management_creation/gwc.html",
+                sel=abs_sel, items=items, parent=parent, lang=lang
+            )
+
+@app.route("/gwc_result")
+def gwc_result():
+    lang = request.args.get("lang", "en")
+    db_name = request.args.get("db")
+    stats, error = get_db_stats(db_name)
+
+    return render_template(
+        "management_creation/ged2gwb_result.html",
+        lang=lang, db_name=db_name, stats=stats, error=error
+    )
+
+
+# --- Fonction utilitaire pour les stats ---
+
+def get_db_stats(db_name):
+    """Interroge le backend pour obtenir les stats d'une base."""
     stats = {}
     error = None
     base_candidates = [
@@ -137,22 +238,15 @@ def ged2gwb_result():
     ]
     for root in base_candidates:
         try:
-            r = requests.get(f"{root}/db/{db_name}/stats", timeout=10)
+            r = requests.get(f"{root.rstrip('/')}/db/{db_name}/stats", timeout=10)
             if r.status_code == 200:
                 stats = r.json()
-                error = None
-                break
+                return stats, None # Succès
             error = f"HTTP {r.status_code}"
         except Exception as e:
             error = str(e)
+    return stats, error # Échec après toutes les tentatives
 
-    return render_template(
-        "management_creation/ged2gwb_result.html",
-        lang=lang,
-        db_name=db_name,
-        stats=stats,
-        error=error,
-    )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=2316, debug=True)

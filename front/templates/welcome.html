@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ lang }}">
 <head>
-  <!-- Copyright (c) 1998-2006 INRIA - GeneWeb -->
   <meta charset="utf-8">
   <meta name="robots" content="none">
   <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon_gwsetup.png') }}">
@@ -71,8 +70,8 @@
     <div style="float:left; width:50%;">
       <span style="font-weight:bold;">Create Family Tree</span>
       <ul>
-        <li>from a GEDCOM source file (<a href="{{ url_for('ged2gwb') }}">ged2gwb</a>)</li>
-        <li>from a GeneWeb source file (<a href="gwsetup?lang={{ lang }};v=gwc.htm">gwc</a>)</li>
+        <li>from a GEDCOM source file (<a href="{{ url_for('ged2gwb', lang=lang) }}">ged2gwb</a>)</li>
+        <li>from a GeneWeb source file (<a href="{{ url_for('gwc', lang=lang) }}">gwc</a>)</li>
         <li>from an empty file (<a href="gwsetup?lang={{ lang }};v=simple.htm">gwc</a>)</li>
       </ul>
     </div>
