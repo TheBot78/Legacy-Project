@@ -1,4 +1,5 @@
 import os  # <-- AJOUTEZ CET IMPORT
+import requests
 from flask import Flask, render_template, request, redirect, url_for
 from path import list_dir, BASE_DIR
 
@@ -42,7 +43,7 @@ def ged2gwb():
         all_options['o'] = db_name
 
         return render_template(
-            "Management_Creation/ged2gwb_confirm.html",
+            "management_creation/ged2gwb_confirm.html",
             lang=lang,
             filepath=filepath,     # Pour afficher la commande (ex: /host_files/foo.ged)
             db_name=db_name,       # Pour afficher le nom (ex: foo)
@@ -53,12 +54,105 @@ def ged2gwb():
         sel = request.args.get("sel", BASE_DIR)
         abs_sel, items, parent = list_dir(sel)
         return render_template(
-            "Management_Creation/ged2gwb.html",
+            "management_creation/ged2gwb.html",
             sel=abs_sel,
             items=items,
             parent=parent,
             lang=lang
         )
+
+@app.route("/ged2gwb", methods=["POST"])
+def ged2gwb_post():
+    lang = request.form.get("lang", "en")
+    filepath = request.form.get("anon", "").strip()
+    db_name = request.form.get("o", "").strip()
+
+    if not filepath:
+        return render_template(
+            "management_creation/ged2gwb_confirm.html",
+            lang=lang,
+            filepath=filepath,
+            db_name=db_name or "",
+            all_options=request.form.to_dict(),
+            error="Aucun fichier GEDCOM sélectionné",
+        )
+
+    # Lecture du contenu GEDCOM
+    try:
+        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+            ged_text = f.read()
+    except Exception as e:
+        return render_template(
+            "management_creation/ged2gwb_confirm.html",
+            lang=lang,
+            filepath=filepath,
+            db_name=db_name or "",
+            all_options=request.form.to_dict(),
+            error=str(e),
+        )
+
+    # Appel au backend avec fallback (localhost et host.docker.internal)
+    candidates = []
+    if os.environ.get("BACKEND_URL"):
+        candidates.append(os.environ.get("BACKEND_URL"))
+    candidates.append("http://127.0.0.1:8000/import_ged")
+    candidates.append("http://localhost:8000/import_ged")
+    candidates.append("http://host.docker.internal:8000/import_ged")
+
+    last_error = None
+    for backend_url in candidates:
+        try:
+            resp = requests.post(backend_url, json={
+                "db_name": db_name,
+                "ged_text": ged_text,
+                "notes_origin_file": filepath,
+            }, timeout=20)
+            data = resp.json()
+            if data.get("ok"):
+                return redirect(url_for("ged2gwb_result", db=db_name, lang=lang))
+            last_error = f"Backend error: {data}"
+        except Exception as e:
+            last_error = str(e)
+
+    return render_template(
+        "management_creation/ged2gwb_confirm.html",
+        lang=lang,
+        filepath=filepath,
+        db_name=db_name or "",
+        all_options=request.form.to_dict(),
+        error=f"Appel backend échoué: {last_error}",
+    )
+
+@app.route("/ged2gwb_result")
+def ged2gwb_result():
+    lang = request.args.get("lang", "en")
+    db_name = request.args.get("db")
+
+    stats = {}
+    error = None
+    base_candidates = [
+        os.environ.get("BACKEND_BASE", "http://127.0.0.1:8000"),
+        "http://localhost:8000",
+        "http://host.docker.internal:8000",
+    ]
+    for root in base_candidates:
+        try:
+            r = requests.get(f"{root}/db/{db_name}/stats", timeout=10)
+            if r.status_code == 200:
+                stats = r.json()
+                error = None
+                break
+            error = f"HTTP {r.status_code}"
+        except Exception as e:
+            error = str(e)
+
+    return render_template(
+        "management_creation/ged2gwb_result.html",
+        lang=lang,
+        db_name=db_name,
+        stats=stats,
+        error=error,
+    )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=2316, debug=True)
