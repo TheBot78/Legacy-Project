@@ -1,77 +1,77 @@
-# Backend Python type GeneWeb
+# Python Backend (GeneWeb-like)
 
-Ce backend FastAPI implémente une structure de base inspirée par la documentation GeneWeb (base, base.acc et index de chaînes et de noms), mais en JSON pour faciliter le prototypage côté Python.
+A small Python backend that parses GeneWeb `.gw` and GEDCOM files and writes a strict classic GeneWeb base folder (`.gwb`). It also produces API-friendly JSON files, but these are stored outside the `.gwb` directory to keep the classic layout pristine.
 
-Référence de la structure GeneWeb: https://geneweb.github.io/overview/database.html#gw-files
+## Overview
+- Strict classic output: `backend/bases/{db}.gwb` contains only GeneWeb-style files.
+- JSON for API/testing: `backend/bases/json_bases/{db}/` holds `base.json`, `base.acc.json`, `names.inx.json`, `strings.inx.json`.
+- Convenience files: `backend/bases/{db}.gw` and `backend/bases/{db}.gwf` are created next to the `.gwb` folder.
 
-## Lancer le serveur
+## Project Layout
+- `backend/api.py` FastAPI endpoints.
+- `backend/storage.py` writers for `.gwb`, `.gw`, `.gwf`, and JSON bases.
+- `backend/gw_parser.py`, `backend/ged_parser.py` parsers.
+- `backend/bases/` output directory.
+- `data/` sample inputs and example classic `.gwb` (Harry-Potter).
 
-```bash
-python -m pip install -r requirements.txt
-python -m uvicorn main:app --reload --port 8000
+## Strict GeneWeb Base Output
+Classic files created under `backend/bases/{db}.gwb/`:
+- `particles.txt`, `snames.dat`, `fnames.dat`
+- `snames.inx`, `fnames.inx`, `names.inx`, `names.acc`
+- `strings.inx`, `nb_persons`, `base`, `base.acc`
+
+JSON base (for API/testing) is stored in `backend/bases/json_bases/{db}/`:
+- `base.json`, `base.acc.json`, `names.inx.json`, `strings.inx.json`
+
+## API Endpoints
+- `POST /import_gw` → writes strict classic `.gwb`, `*.gw`, `*.gwf`, and JSON to `json_bases/{db}`.
+- `POST /import_ged` → same as above, taking GEDCOM text.
+- `GET /db/{db}/stats` → reads counts from `backend/bases/json_bases/{db}/base.json`.
+
+## Quickstart (Windows)
+1) Create venv and install deps:
+```
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
+```
+2) Run the API server:
+```
+uvicorn backend.api:app --reload
+```
+3) Open docs:
+```
+http://127.0.0.1:8000/docs
 ```
 
-## Importer une base
-
-Endpoint: `POST /import`
-
-Payload JSON:
-```json
-{
-  "db_name": "demo",
-  "persons": [
-    {"first_names": ["Jean"], "surname": "Dupont", "sex": "M"},
-    {"first_names": ["Marie"], "surname": "Durand", "sex": "F"}
-  ],
-  "families": [
-    {"husband_id": 0, "wife_id": 1, "children_ids": [ ]}
-  ]
-}
+## Import Examples
+- Import GEDCOM (Python):
+```
+from pathlib import Path
+from backend.api import GwImportGEDRequest, import_ged
+text = Path('data/Harry-Potter.ged').read_text(encoding='utf-8')
+req = GwImportGEDRequest(db_name='Harry-Potter', ged_text=text, notes_origin_file='data/Harry-Potter.ged')
+resp = import_ged(req)
+print(resp)
+```
+- Stats via HTTP:
+```
+Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/db/Harry-Potter/stats
 ```
 
-Cela crée `data/demo.gwb/` avec:
-- `base.json`: tableaux de personnes/familles/chaînes et métadonnées
-- `base.acc.json`: offsets logiques par id
-- `strings.inx.json`: index de chaînes hachées
-- `names.inx.json`: index de noms (plein, sous-chaînes prénom/nom)
+## Verify Output
+- Classic base: `backend/bases/Harry-Potter.gwb/` (only classic files).
+- JSON base: `backend/bases/json_bases/Harry-Potter/`.
+- Convenience: `backend/bases/Harry-Potter.gw`, `backend/bases/Harry-Potter.gwf`.
 
-## Requêtes
+Note: The script `tmp_verify_import.py` previously checked for JSON inside the `.gwb` folder. With strict mode, it will report those JSON files as “missing” in `.gwb` by design. Check them under `backend/bases/json_bases/{db}/` or adapt the script accordingly.
 
-- `GET /db/{db}/persons/{id}`: lire une personne encodée (les champs référencent ids de chaînes)
-- `GET /db/{db}/families/{id}`: lire une famille
-- `GET /db/{db}/search/name?q=...`: recherche par nom complet normalisé
-- `GET /db/{db}/search/string?q=...`: recherche exacte sur chaîne normalisée
-- `GET /db/{db}/stats`: compte des entrées
-
-## Importer/parsers un fichier GW/GWPlus
-
-Deux endpoints supplémentaires permettent de parser un fichier texte `.gw`/GWPlus et d’optionnellement créer la base JSON:
-
-- `POST /parse_gw`: parse le contenu brut et renvoie `persons`, `families`, `notes`.
-- `POST /import_gw`: parse puis écrit `data/{db_name}.gwb/` (même structure que ci-dessus).
-
-Exemple minimal d’appel pour `POST /parse_gw`:
-```json
-{
-  "gw_text": "encoding: utf-8\n gwplus\n\n fam Galichet Jean_Pierre 0 <1849 + Loche Marie_Elisabeth 0 <1849\n fevt\n #marr\n end fevt\n beg\n - h Jean_Charles 1813\n end\n pevt Galichet Jean_Charles\n #birt 1813\n end pevt\n"
-}
+## Development Notes
+- Lint: `pycodestyle --max-line-length=100`.
+- On PowerShell, prefer listing files explicitly instead of wildcards, e.g.:
+```
+pycodestyle --max-line-length=100 backend\api.py backend\storage.py backend\ged_parser.py backend\gw_parser.py backend\models.py backend\name_utils.py backend\indexes.py main.py
 ```
 
-Exemple d’appel pour `POST /import_gw`:
-```json
-{
-  "db_name": "demo_gw",
-  "gw_text": "encoding: utf-8\n gwplus\n ... (contenu du fichier .gw) ..."
-}
-```
-
-Notes sur le parsing:
-- Les noms utilisent des underscores pour coller les prénoms (`Thérèse_Eugénie` → `Thérèse Eugénie`). Les suffixes de désambiguïsation (`Louis.1`) sont ignorés.
-- Les événements personnels (`pevt`) supportent `#birt`, `#deat` et les lieux via `#p`/`#bp`/`#dp`.
-- Les familles (`fam`) + blocs `fevt` (mariage) et `beg`/`end` (enfants) sont reconnus; les enfants héritent des parents et leur sexe via `- h` (M) / `- f` (F).
-- Les blocs `notes <Nom>` sont renvoyés dans `notes` (non persistés dans `base.json`).
-
-## Notes
-
-- Le format de stockage ici est JSON, pas le binaire OCaml utilisé par GeneWeb, mais la structure et les index répliquent l’esprit (accès par id, hachage, sous-chaînes).
-- La normalisation des noms suit une approximation (accents enlevés, minuscules, ponctuation retirée) pour des recherches robustes.
+## License
+No license file is included. Use at your discretion for local testing and prototyping.

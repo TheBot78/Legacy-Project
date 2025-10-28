@@ -12,8 +12,8 @@ from .ged_parser import parse_ged_text
 from fastapi.responses import RedirectResponse
 
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-DATA_DIR.mkdir(exist_ok=True)
+BASES_DIR = Path(__file__).resolve().parent / "bases"
+BASES_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="GeneWeb-like Python Backend", version="0.1")
 
@@ -80,110 +80,13 @@ def import_database(req: ImportRequest):
             marriage_place=f.marriage_place,
         ))
 
-    db_dir = write_gwb(DATA_DIR, req.db_name, persons, families, req.notes_origin_file)
-    return {"ok": True, "db_dir": str(db_dir)}
-
-
-@app.get("/db/{db_name}/persons/{person_id}")
-def get_person(db_name: str, person_id: int):
-    db_dir = DATA_DIR / f"{db_name}.gwb"
-    base_path = db_dir / "base.json"
-    if not base_path.exists():
-        raise HTTPException(status_code=404, detail="Base not found")
-    base = json.loads(base_path.read_text(encoding="utf-8"))
-    persons = base.get("persons", [])
-    for p in persons:
-        if p.get("id") == person_id:
-            return p
-    raise HTTPException(status_code=404, detail="Person not found")
-
-
-@app.get("/db/{db_name}/families/{family_id}")
-def get_family(db_name: str, family_id: int):
-    db_dir = DATA_DIR / f"{db_name}.gwb"
-    base_path = db_dir / "base.json"
-    if not base_path.exists():
-        raise HTTPException(status_code=404, detail="Base not found")
-    base = json.loads(base_path.read_text(encoding="utf-8"))
-    families = base.get("families", [])
-    for f in families:
-        if f.get("id") == family_id:
-            return f
-    raise HTTPException(status_code=404, detail="Family not found")
-
-
-@app.get("/db/{db_name}/search/name")
-def search_by_name(db_name: str, q: str):
-    db_dir = DATA_DIR / f"{db_name}.gwb"
-    names_path = db_dir / "names.inx.json"
-    base_path = db_dir / "base.json"
-    if not names_path.exists() or not base_path.exists():
-        raise HTTPException(status_code=404, detail="Index or base not found")
-    names_idx = json.loads(names_path.read_text(encoding="utf-8"))
-    base = json.loads(base_path.read_text(encoding="utf-8"))
-    persons = base.get("persons", [])
-    strings = base.get("strings", [])
-
-    key = crush_name(q)
-    table_size = names_idx["name_to_person"]["table_size"]
-    buckets = names_idx["name_to_person"]["buckets"]
-
-    import hashlib
-    h = hashlib.sha256(key.encode("utf-8")).digest()
-    slot = int.from_bytes(h[:8], "big") % (table_size or 1)
-    ids = buckets[slot] if table_size > 0 else []
-
-    # Filter exact crushed full name matches
-    results = []
-    for pid in ids:
-        p = next((x for x in persons if x.get("id") == pid), None)
-        if p is None:
-            continue
-        fnames = [strings[i] for i in p.get("first_name_ids", [])]
-        sname = strings[p.get("surname_id")] if p.get("surname_id") is not None else ""
-        full = crush_name(" ".join([*fnames, sname]).strip())
-        if full == key:
-            results.append(p)
-    return {"query": q, "results": results}
-
-
-@app.get("/db/{db_name}/search/string")
-def search_by_string(db_name: str, q: str):
-    db_dir = DATA_DIR / f"{db_name}.gwb"
-    strings_path = db_dir / "strings.inx.json"
-    base_path = db_dir / "base.json"
-    if not strings_path.exists() or not base_path.exists():
-        raise HTTPException(status_code=404, detail="Index or base not found")
-    s_idx = json.loads(strings_path.read_text(encoding="utf-8"))
-    strings = json.loads(base_path.read_text(encoding="utf-8")).get("strings", [])
-
-    key = crush_name(q)
-    table_size = s_idx["table_size"]
-    buckets = s_idx["buckets"]
-
-    import hashlib
-    h = hashlib.sha256(key.encode("utf-8")).digest()
-    slot = int.from_bytes(h[:8], "big") % (table_size or 1)
-    ids = buckets[slot] if table_size > 0 else []
-
-    # Filter strings that match the crushed form
-    results = [
-        {"id": sid, "value": s}
-        for sid in ids
-        for s in [strings[sid]]
-        if crush_name(s) == key
-    ]
-    return {"query": q, "results": results}
-
-
-@app.get("/db/{db_name}/stats")
-def stats(db_name: str):
-    db_dir = DATA_DIR / f"{db_name}.gwb"
-    base_path = db_dir / "base.json"
-    if not base_path.exists():
-        raise HTTPException(status_code=404, detail="Base not found")
-    base = json.loads(base_path.read_text(encoding="utf-8"))
-    return base.get("counts", {})
+    db_dir = write_gwb(BASES_DIR, req.db_name, persons, families, req.notes_origin_file)
+    # Écriture classique .gwb pour reproduire la structure Legacy-Project/data/*.gwb
+    from .storage import write_gwb_classic, write_gw, write_gwf
+    write_gwb_classic(BASES_DIR, req.db_name, persons, families)
+    gw_path = write_gw(BASES_DIR, req.db_name, persons, families)
+    gwf_path = write_gwf(BASES_DIR, req.db_name)
+    return {"ok": True, "db_dir": str(db_dir), "gw_path": str(gw_path), "gwf_path": str(gwf_path)}
 
 
 class GwParseRequest(BaseModel):
@@ -219,21 +122,35 @@ def parse_gw(req: GwParseRequest):
     }
 
 
+@app.get("/db/{db_name}/stats")
+def stats(db_name: str):
+    # Lire les JSON depuis backend/bases/json_bases/{db_name}/
+    db_dir = BASES_DIR / "json_bases" / db_name
+    base_path = db_dir / "base.json"
+    if not base_path.exists():
+        raise HTTPException(status_code=404, detail="Base not found")
+    base = json.loads(base_path.read_text(encoding="utf-8"))
+    return base.get("counts", {})
+
+
 @app.post("/import_gw")
 def import_gw(req: GwImportGWRequest):
     parsed = parse_gw_text(req.gw_text)
     persons: List[Person] = parsed["persons"]
     families: List[Family] = parsed["families"]
-    db_dir = write_gwb(
-        DATA_DIR,
-        req.db_name,
-        persons,
-        families,
-        req.notes_origin_file,
-    )
+    # Écrit la structure classique .gwb strictement
+    from .storage import write_gwb_classic, write_gw, write_gwf, write_json_base
+    db_dir = write_gwb_classic(BASES_DIR, req.db_name, persons, families)
+    # Écrit les JSON dans json_bases/{db}
+    json_dir = write_json_base(BASES_DIR, req.db_name, persons, families, req.notes_origin_file)
+    gw_path = write_gw(BASES_DIR, req.db_name, persons, families)
+    gwf_path = write_gwf(BASES_DIR, req.db_name)
     return {
         "ok": True,
         "db_dir": str(db_dir),
+        "json_dir": str(json_dir),
+        "gw_path": str(gw_path),
+        "gwf_path": str(gwf_path),
         "counts": {
             "persons": len(persons),
             "families": len(families),
@@ -249,20 +166,19 @@ def import_ged(req: GwImportGEDRequest):
     parsed = parse_ged_text(req.ged_text)
     persons: List[Person] = parsed["persons"]
     families: List[Family] = parsed["families"]
-    db_dir = write_gwb(
-        DATA_DIR,
-        req.db_name,
-        persons,
-        families,
-        req.notes_origin_file,
-    )
-    # Create a textual .gw alongside the JSON base
-    from .storage import write_gw
-    gw_path = write_gw(DATA_DIR, req.db_name, persons, families)
+    # Écrit la structure classique .gwb strictement
+    from .storage import write_gwb_classic, write_gw, write_gwf, write_json_base
+    db_dir = write_gwb_classic(BASES_DIR, req.db_name, persons, families)
+    # Écrit les JSON dans json_bases/{db}
+    json_dir = write_json_base(BASES_DIR, req.db_name, persons, families, req.notes_origin_file)
+    gw_path = write_gw(BASES_DIR, req.db_name, persons, families)
+    gwf_path = write_gwf(BASES_DIR, req.db_name)
     return {
         "ok": True,
         "db_dir": str(db_dir),
+        "json_dir": str(json_dir),
         "gw_path": str(gw_path),
+        "gwf_path": str(gwf_path),
         "counts": {
             "persons": len(persons),
             "families": len(families),
@@ -276,3 +192,5 @@ def import_ged(req: GwImportGEDRequest):
 @app.get("/")
 def root():
     return RedirectResponse(url="/docs")
+
+# end
