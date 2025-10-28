@@ -63,14 +63,20 @@ some minutes, depending on the cases. Be patient.
 Push the button below to create you database
 :
 <p>
-<form method="post" action="gwc">
-<input type=hidden name=lang value=en>
-<input type=hidden name=nofail value="on">
-<input type=hidden name=f value="on">
-<input type=hidden name=anon value="/Users/yvainye/Downloads/galichet.gw">
-<input type=hidden name=fname value="">
-<input type=hidden name=o value="galichet">
-<input type=hidden name=body_prop value="">
+<form method="post" action="{{ url_for('gwc') }}">
+  <input type="hidden" name="lang" value="{{ lang }}">
+  <input type="hidden" name="f" value="on">
+  {# Injecte toutes les options transmises, en filtrant opt/lang #}
+  {% for key, value in all_options.items() %}
+    {% if key == 'fname' %}
+      <input type="hidden" name="anon" value="{{ value }}"> {# chemin choisi #}
+    {% elif key not in ['opt', 'lang'] %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endif %}
+  {% endfor %}
+  {% if db_name %}
+    <input type="hidden" name="o" value="{{ db_name }}">
+  {% endif %}
 
 <dl><dt><dd>
 <input type="submit" value="Ok">
@@ -80,10 +86,10 @@ Push the button below to create you database
 <p>
 For information, this operation corresponds to the following commands:
 <pre>
-     $ cd "/Users/yvainye/Linux/Delivery/geneweb-macos/bases"
-     $ /Users/yvainye/Linux/Delivery/geneweb-macos/gw/gwc -nofail -f /Users/yvainye/Downloads/galichet.gw -o galichet > comm.log
+     $ cd ... (chemin vers le dossier des bases)
+     $ .../gwc -f <b>{{ filepath }}</b> -o <b>{{ db_name }}</b> > comm.log
 </pre>
-This builds a directory named "galichet.gwb".
+This builds a directory named "<b>{{ db_name }}</b>.gwb".
 </ul>
 </body>
 </html>
