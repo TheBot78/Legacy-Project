@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="none">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon_gwsetup.png') }}">
+
+  <title>Import a GEDCOM file</title>
+
+  <style>
+* {
+  font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol;
+}
+
+pre {
+  font-family: monospace;
+}
+
+a.j {
+  font-family: monospace;
+}
+
+table.setup {
+  border:1px solid;
+  border-radius:4px;
+  border-color:#5bc0de;
+}
+
+div.welcome {
+  width: 830px;
+  border: solid 2px #5bc0de;
+  border-radius:6px;
+  text-align: left;
+  overflow: auto;
+  margin-left: auto;
+  margin-right: auto;
+  padding:5px;">
+}
+  </style>
+
+  <script>
+    function selectFile(filePath) {
+      document.getElementById('selectedFileField').value = filePath;
+      document.getElementById('currentPathDisplay').innerText = filePath;
+    }
+  </script>
+</head>
+
+<body>
+  <div style="background:url('{{ url_for('static', filename='images/gwlogo.png') }}') no-repeat left top; text-align:center; height:95px; line-height:95px; color:#2f6400;">
+    <h1 style="margin:0;">Import a GEDCOM file</h1>
+  </div>
+
+  <p>
+  <form method="GET" action="ged2gwb">
+    <input type="hidden" name="opt" value="check">
+    <input type="hidden" name="lang" value="{{ lang }}">
+
+    <p>
+    <ul>
+      <li>Select your GEDCOM file by clicking on the file or navigating in your folders.
+      <p>
+
+      <input type="hidden" id="selectedFileField" name="filepath" value="{{ sel }}">
+
+      <table class="setup">
+        <tr>
+          <td>
+            <pre id="currentPathDisplay" style="font-family: monospace; margin: 0; padding-bottom: 10px;">{{ sel }}</pre>
+
+            {% if parent %}
+              <a class="j" href="{{ url_for('ged2gwb', sel=parent, lang=lang) }}">../</a><br>
+            {% endif %}
+
+            {% for item in items %}
+              {% if item.is_dir %}
+                <a class="j" href="{{ url_for('ged2gwb', sel=item.path, lang=lang) }}">{{ item.name }}/</a><br>
+              {% else %}
+                <a class="j" href="#" onclick="selectFile('{{ item.path }}'); return false;">{{ item.name }}</a><br>
+              {% endif %}
+            {% endfor %}
+          </td>
+        </tr>
+      </table>
+      <span style="font-size:80%">
+        <table>
+          <tr>
+            <td valign="top">Note:</td>
+            <td>../ allows you to reach the parent directory.</td>
+          </tr>
+        </table>
+      </span>
+      <p>
+      <li>
+      Enter The name you want to give to your <b><font color=#2f6400>GeneWeb</font></b>
+      database. If omitted, it will be deducted from the name of the GEDCOM file.
+
+      <p>
+      <table class="setup">
+        <tr>
+          <td>
+            <span style="font-family: monospace">
+               -o          </span>
+            <input name="o" size="30" style="padding-left:4px"
+            placeholder="name
+            ">
+          </td>
+        </tr>
+      </table>
+      <p>
+      <li>
+      Select the options you want:
+
+      <p>
+      <table class="setup">
+        <tr align="left">
+          <td><input type="checkbox" name="uin" id="uin" value="on" />
+          <label for="uin" style="font-family: monospace">-uin          | </label>Put untreated GEDCOM tags in notes.
+          </td>
+        </tr>
+      </table>
+      <p>
+      <table class="setup">
+        <tr align="left">
+          <td><input type="checkbox" name="lf" id="lf" value="on" />
+          <label for="lf" style="font-family: monospace">-lf           | </label>Convert first names to lowercase letters, with initials in uppercase.
+          </td>
+        </tr>
+      </table>
+      <p>
+      <table class="setup">
+        <tr align=left>
+          <td><input type="checkbox" name="ls" id="ls" value="on">
+          <label for="ls" style="font-family: monospace">-ls           | </label>Convert surnames to lowercase letters, with initials in uppercase. Try
+          to keep lowercase particles.
+
+          </td></tr>
+      </table>
+      <p>
+      <table class="setup">
+        <tr align=left><td>    </td>
+          <td>When creating a person, if the GEDCOM first name part holds several names
+          separated by spaces, you can ask that the first of this names becomes the
+          person "first name" and the complete GEDCOM first name part a "first name
+          alias" (-no_efn default.
+
+          </td></tr>
+
+          <tr align=left>
+            <td colspan=2 width="15"><input type="checkbox" name="efn" id="efn" value="on">
+            <label for="efn" style="font-family: monospace">-efn          | </label>Set this option.
+            </td>
+          </tr>
+      </table>
+      <p>
+      <table class="setup">
+        <tr align=left><td>    </td>
+          <td>"first names enclosed": the -fne option must be followed by a two characters
+          string "be". When creating a person, if the GEDCOM first name part holds
+          a part between 'b' (any character) and 'e' (any character), it is considered
+          to be the usual first name: e.g. -fne "\\" or -fne "()".
+
+          </td></tr>
+
+          <tr align=left>
+            <td colspan=2><span style="font-family: monospace">
+               -fne         </span>
+            <input type="input" name="fne" size="2" maxlength="2" style="padding-left:4px">
+             (do not enter the quotes "" in the input zone).
+            </td></tr>
+      </table>
+      <p>
+      <table class="setup">
+        <tr align=left><td>    </td>
+          <td>By default, when creating a person, if the GEDCOM first name part looks
+          like a public name, i.e. holds: <ul> <li>A number or a roman number, supposed
+          to be a number of a nobility title (e.g. George V) <li>One of the words:
+          "der", "den", "die", "el", "le", "la", "the", supposed to be the beginning
+          of a qualifier (e.g. William the Conqueror) </ul> then the GEDCOM first
+          name part becomes the person "public name" and its first word his "first
+          name" (-epn default).
+
+          </td></tr>
+          <tr align=left>
+            <td colspan=2><input type="checkbox" name="no_epn" id="no_epn" value="on">
+            <label for="no_epn" style="font-family: monospace">-no_epn        | </label>Cancel this option.
+            </td>
+          </tr>
+      </table>
+      <p>
+      <table class="setup">
+        <td><input type="checkbox" name="no_pit" id="no_pit" value="on">
+        <label for="no_pit" style="font-family: monospace">-no_pit        | </label>Not public even if titles (see -epn option).
+        </td>
+        </tr>
+      </table>
+
+      <table class="setup">
+        <tr align=left>
+          <td><input type="checkbox" name="tnd" id="tnd" value="on">
+          <label for="tnd" style="font-family: monospace">-tnd           | </label>Set negative dates when inconsistency (e.g. birth after death).
+          </td>
+        </tr>
+      </table>
+      <p>
+      <table class="setup">
+        <td><input type="checkbox" name="no_nd" id="no_nd" value="on">
+        <label for="no_nd" style="font-family: monospace">-no_nd         | </label>No negative dates: do not interpret a year preceded by a minus sign as
+        a negative year.
+
+        </td>
+        </tr>
+      </table>
+      <p>
+      <table class="setup">
+        <tr align=left>
+          <td><input type="checkbox" name="nc" id="nc" value="on">
+          <label for="nc" style="font-family: monospace">-nc            | </label>No consistency check.
+          </td>
+        </tr>
+      </table>
+      <p>
+      <table class="setup">
+        <tr align=left>
+          <td><input type="checkbox" name="nopicture" id="nopicture" value="on">
+          <label for="nopicture" style="font-family: monospace">-nopicture     | </label>Don't extract individual picture.
+          </td>
+        </tr>
+      </table>
+      <p>
+      <table class="setup">
+        <tr align=left>
+          <td><input type="checkbox" name="rs_no_mention" id="rs_no_mention" value="on">
+          <label for="rs_no_mention" style="font-family: monospace">-rs_no_mention | </label>Force relation status to "NoMention" (default is "Married").
+          </td>
+        </tr>
+      </table>
+      <p>
+      <table class="setup">
+        <tr align=left><td>
+      Default source:
+          </td>
+        </tr>
+        <tr>
+          <td colspan=2>
+            <span style="font-family: monospace">   -ds          </span>
+            <input name="ds" size="100%" style="padding-left:4px" placeholder="source"></td>
+        </tr>
+      </table>
+      <p>
+      <table class="setup">
+        <tr align=left>
+          <td>    </td>
+          <td colspan=2>Some GEDCOM files sometimes write dates with numbered months (from 1 to
+          12). The GEDCOM standard 5.5 requires that the months be represented by
+          identifiers (e.g. "MAY 1912" and not "05/1912"). The notation "02/05/1912"
+          is ambiguous (means "May 2, 1912" or "February 5, 1912" according to the
+          countries).
+
+          </td><td></td>
+        </tr>
+        <td>    </td>
+        <td width="120px"><span style="font-family: monospace"></span></td>
+        <td><input type="radio" name="dates" id="dates" value="none" checked>
+        <label for="dates">For these dates, extract only the "year" part.
+        </label></td>
+        </tr>
+
+        <tr align=left>
+          <td>    </td>
+          <td><span style="font-family: monospace">-dates_dm</span></td>
+          <td><input type="radio" name="dates" id="dates_dm" value="_dm">
+          <label for="dates_dm">Interpret these dates as "day/month/year".
+          </label></td>
+        </tr>
+
+        <tr align=left>
+          <td>    </td>
+          <td><span style="font-family: monospace">-dates_md</span></td>
+          <td><input type=radio name=dates value="_md" id="dates_md">
+          <label for="dates_md">Interpret these dates as "month/day/year".
+          </label></td>
+        </tr>
+      </table>
+      <p>
+      <table class="setup">
+        <tr align=left>
+          <td>    </td>
+          <td colspan=2>The accentuated characters encoding is normally specified in the GEDCOM header.
+          </td><td></td></tr>
+
+        <tr align=left>
+          <td>    </td>
+          <td width="120px"><span style="font-family: monospace">-charset</span></td>
+          <td><input type="radio" name="charset" id="GEDCOM" value="none" checked>
+          <label for="GEDCOM">Follow the indications of the GEDCOM header.
+          </label></td>
+        </tr>
+
+        <tr align=left><td></td>
+          <td>    </td>
+          <td ><input type="radio" name="charset" value="ANSEL" id="ANSEL">
+          <label for="ANSEL">The accentuated characters are in ANSEL encoding.
+          </label></td>
+        </tr>
+
+        <tr align=left><td></td>
+          <td>    </td>
+          <td><input type="radio" name="charset" value="ANSI" id="ANSI">
+          <label for="ANSI">The accentuated characters are in ANSI encoding (ISO 8859-1).
+          </label></td>
+        </tr>
+
+        <tr align=left><td></td>
+          <td>    </td>
+          <td><input type=radio name=charset value=ASCII id="ASCII">
+          <label for="ASCII">The accentuated characters are in ASCII encoding.
+          </label></td>
+        </tr>
+
+        <tr align=left><td></td>
+          <td>    </td>
+          <td><input type="radio" name="charset" value="MSDOS" id="MSDOS">
+          <label for="MSDOS">The accentuated characters are in MSDOS encoding.
+          </label></td>
+        </tr>
+      </table>
+      <p>
+      <li>
+      Then press this button:
+      <input type="submit" value="OK">
+      </dl>
+    </ul>
+  </form>
+
+  </body>
+</html>
+<br><div id="footer"><hr><div><em><a href="https://github.com/geneweb/geneweb/"><img src="images/logo_bas.png" style="border:0"></a> Version 7.1-beta Copyright &copy; 1998-2021</em></div></div></body></html>

@@ -20,6 +20,7 @@ services:
       - app-network
     volumes:
       - ./front:/app/front
+      - ~:/host_files:ro
     environment:
       - FLASK_ENV=development
     command: python /app/front/gwsetup/app.py
