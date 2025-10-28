@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose a genealogy</title>
+    <style>
+        /* Styles généraux du corps */
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #fff;
+            color: #333;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Conteneur principal pour centrer le contenu */
+        .container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2em;
+            font-weight: 300;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            font-weight: 300;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        p {
+            margin: 10px 0;
+        }
+
+        /* Style du formulaire */
+        .database-form {
+            margin: 15px 0;
+        }
+
+        .database-form input[type="text"] {
+            padding: 5px 8px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        .database-form input[type="submit"] {
+            padding: 5px 12px;
+            font-size: 1em;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        .database-form input[type="submit"]:hover {
+            background-color: #e0e0e0;
+        }
+
+        /* Lien sous le formulaire */
+        .list-link {
+            font-size: 0.9em;
+        }
+
+        .list-link a {
+            color: #000; /* Le lien est noir dans l'image */
+            text-decoration: underline;
+        }
+
+        /* Conteneur pour les boutons de langue */
+        .language-selector {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        /* Style des boutons de langue */
+        .language-selector a {
+            display: inline-block;
+            padding: 4px 10px;
+            background-color: #f7f7f7;
+            border: 1px solid #dcdcdc;
+            border-radius: 3px;
+            text-decoration: none;
+            color: #333;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        .language-selector a:hover {
+            background-color: #e0e0e0;
+            border-color: #b0b0b0;
+        }
+
+        /* Pied de page */
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            font-size: 0.85em;
+            color: #555;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .footer-logos img {
+            height: 25px; /* Ajusté pour une bonne visibilité */
+            vertical-align: middle;
+            margin: 0 3px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Choose a genealogy</h1>
+
+        <p>Please, enter the name of the database you want to use:</p>
+
+        <form action="#" method="get" class="database-form">
+            <input type="text" id="database-name" name="db">
+            <input type="submit" value="Ok">
+        </form>
+
+        <p class="list-link">
+            <a href="#">List of available genealogies:</a>
+        </p>
+
+        <h2>View in:</h2>
+
+        <div class="language-selector">
+            <a href="#">Afrikaans</a>
+            <a href="#">العربية</a>
+            <a href="#">български</a>
+            <a href="#">brezhoneg</a>
+            <a href="#">català</a>
+            <a href="#">corsu</a>
+            <a href="#">čeština</a>
+            <a href="#">dansk</a>
+            <a href="#">Deutsch</a>
+            <a href="#">English</a>
+            <a href="#">esperanto</a>
+            <a href="#">Español</a>
+            <a href="#">eesti</a>
+            <a href="#">suomi</a>
+            <a href="#">français</a>
+            <a href="#">עברית</a>
+            <a href="#">íslenska</a>
+            <a href="#">italiano</a>
+            <a href="#">Latviešu</a>
+            <a href="#">Lietuvių</a>
+            <a href="#">Nederlands</a>
+            <a href="#">norsk</a>
+            <a href="#">occitan</a>
+            <a href="#">polski</a>
+            <a href="#">Português</a>
+            <a href="#">Português-do-Brasil</a>
+            <a href="#">romaneşte</a>
+            <a href="#">русский</a>
+            <a href="#">slovenčina</a>
+            <a href="#">slovenščina</a>
+            <a href="#">svenska</a>
+            <a href="#">turkish</a>
+            <a href="#">中文</a>
+        </div>
+
+        <footer>
+            <span>GeneWeb v. 7.1-beta © INRIA 1998-2017</span>
+            <span class="footer-logos">
+                <a href="#"><img src="static/images/logo_bas.png" alt="GeneWeb Logo"></a>
+                <a href="#"><img src="static/images/logo_bas_mw.png" alt="GeneWeb Wiki"></a>
+            </span>
+        </footer>
+    </div>
+
+</body>
+</html>
