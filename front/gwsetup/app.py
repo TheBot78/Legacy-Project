@@ -178,7 +178,6 @@ def gwc():
             error=f"Appel backend échoué: {last_error}"
         )
 
-    # --- Logique GET (navigation ou première soumission) ---
     else:
         if request.args.get("opt") == "check":
             filepath = request.args.get("fname", "")
@@ -233,6 +232,73 @@ def rename():
         error=error
     )
 
+@app.route("/delete", methods=['GET'])
+def delete():
+    lang = request.args.get("lang", "en")
+    
+    dbs_to_delete = [db for db in request.args if db != 'lang']
+
+    if dbs_to_delete:
+        geneweb_url = "http://localhost:2317"
+        return render_template(
+            "management_creation/delete_confirm.html",
+            lang=lang,
+            databases_to_delete=dbs_to_delete,
+            geneweb_url=geneweb_url
+        )
+
+    else:
+        databases, error = get_all_dbs()
+        geneweb_url = "http://localhost:2317" 
+
+        return render_template(
+            "management_creation/delete.html",
+            lang=lang,
+            databases=databases,
+            geneweb_url=geneweb_url,
+            error=error
+        )
+
+@app.route("/delete_confirm", methods=['POST'])
+def delete_confirm_action():
+    lang = request.form.get("lang", "en")
+    
+    deleted_dbs_list = []
+    errors = []
+
+    for db_name, value in request.form.items():
+        if value == 'del':
+            success, error = call_backend_delete(db_name)
+            if success:
+                deleted_dbs_list.append(db_name)
+            else:
+                errors.append(f"Failed to delete {db_name}: {error}")
+
+    return redirect(url_for(
+        'delete_result', 
+        lang=lang, 
+        deleted=deleted_dbs_list, 
+        errors=errors
+    ))
+
+@app.route("/delete_result")
+def delete_result():
+    lang = request.args.get("lang", "en")
+    
+    deleted_databases = request.args.getlist("deleted")
+    errors = request.args.getlist("errors")
+    
+    remaining_databases, list_error = get_all_dbs()
+    
+    return render_template(
+        "management_creation/delete_result.html",
+        lang=lang,
+        deleted_databases=deleted_databases,
+        remaining_databases=remaining_databases,
+        errors=errors,
+        list_error=list_error
+    )
+
 def get_db_stats(db_name):
     stats = {}
     error = None
@@ -271,6 +337,11 @@ def get_all_dbs():
             error = str(e)
     return databases, error
 
+def call_backend_delete(db_name):
+    print(f"[STUB] Appel backend pour SUPPRIMER {db_name}")
+    success = True
+    error = None
+    return success, error
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=2316, debug=True)

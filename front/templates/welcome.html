@@ -85,7 +85,7 @@
       <ul>
         <li>Clean up (<a href="gwsetup?lang={{ lang }};v=cleanup.htm">cleanup</a>)</li>
         <li>Renaming (<a href="{{ url_for('rename', lang=lang) }}">rename</a>)</li>
-        <li>Deletion (<a href="gwsetup?lang={{ lang }};v=delete.htm">delete</a>)</li>
+        <li>Deletion (<a href="{{ url_for('delete', lang=lang) }}">delete</a>)</li>
         <li>Merging with other databases (<a href="gwsetup?lang={{ lang }};v=merge.htm">merge</a>)</li>
         <li>Saving and restoring (<a href="gwsetup?lang={{ lang }};v=save.htm">gwu</a>)</li>
         <li>Initialisation of consanguinities (<a href="gwsetup?lang={{ lang }};v=consang.htm">consang</a>)</li>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="none">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon_gwsetup.png') }}">
+  <title>Databases deleted</title>
+<style>
+* {
+  font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol;
+}
+pre { font-family: monospace; }
+a.j { font-family: monospace; }
+table.setup {
+  border:1px solid;
+  border-radius:4px;
+  border-color:#5bc0de;
+}
+</style>
+</head>
+<body>
+
+<div style="background:url('{{ url_for('static', filename='images/gwlogo.png') }}') no-repeat left top; text-align:center; height:95px; line-height:95px; color:#2f6400;">
+<h1 style="margin:0;">Databases deleted</h1>
+</div>
+<p>
+
+{% if errors %}
+  <div style="color: red; border: 1px solid red; padding: 10px; margin-bottom: 15px;">
+    <b>The following errors occurred during deletion:</b>
+    <ul>
+    {% for err in errors %}
+      <li>{{ err }}</li>
+    {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+Here are the deleted databases:
+<p>
+<ul>
+{% if deleted_databases %}
+  {% for db in deleted_databases %}
+    <li>{{ db }}</li>
+  {% endfor %}
+{% else %}
+  <li>No databases were deleted.</li>
+{% endif %}
+</ul>
+<p>
+Here are the remaining databases:
+<p>
+<ul>
+{% if remaining_databases %}
+  {% for db in remaining_databases %}
+    <li>{{ db }}</li>
+  {% endfor %}
+{% elif list_error %}
+  <li style="color: red;">Could not fetch remaining databases: {{ list_error }}</li>
+{% else %}
+  <li> there is no database</li>
+{% endif %}
+</ul>
+<p>
+Return to the main menu. (<a href="{{ url_for('welcome', lang=lang) }}">welcome</a>)
+</body>
+</html>
+<br><div id="footer"><hr><div><em><a href="https://github.com/geneweb/geneweb/"><img src="{{ url_for('static', filename='images/logo_bas.png') }}" style="border:0"></a> Version 7.1-beta Copyright &copy; 1998-2021</em></div></div></body></html>
