@@ -193,4 +193,31 @@ def import_ged(req: GwImportGEDRequest):
 def root():
     return RedirectResponse(url="/docs")
 
+
+@app.get("/dbs")
+def list_dbs():
+    """
+    Retourne la liste des bases disponibles (nom des dossiers dans json_bases
+    ou le champ 'name' dans base.json si présent).
+    Utilisé par front/gwsetup/app.py -> get_all_dbs()
+    """
+    json_bases_dir = BASES_DIR / "json_bases"
+    if not json_bases_dir.exists():
+        return []
+
+    dbs = []
+    for p in sorted(json_bases_dir.iterdir()):
+        if not p.is_dir():
+            continue
+        base_file = p / "base.json"
+        if base_file.exists():
+            try:
+                base = json.loads(base_file.read_text(encoding="utf-8"))
+                dbs.append(base.get("name", p.name))
+            except Exception:
+                dbs.append(p.name)
+        else:
+            dbs.append(p.name)
+    return dbs
+
 # end
