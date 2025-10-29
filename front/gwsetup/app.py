@@ -9,7 +9,14 @@ app = Flask(
     template_folder="../templates"
 )
 
-# --- Routes de base ---
+def get_backend_candidates():
+    candidates = []
+    if os.environ.get("BACKEND_URL"):
+        candidates.append(os.environ.get("BACKEND_URL"))
+    candidates.append("http://127.0.0.1:8000")
+    candidates.append("http://localhost:8000")
+    candidates.append("http://host.docker.internal:8000")
+    return candidates
 
 @app.route("/")
 def home():
@@ -19,8 +26,6 @@ def home():
 def welcome():
     lang = request.args.get("lang", "fr")
     return render_template("welcome.html", lang=lang)
-
-# --- Flux GED2GWB ---
 
 @app.route("/ged2gwb", methods=['GET', 'POST'])
 def ged2gwb():
@@ -51,13 +56,7 @@ def ged2gwb():
                 all_options=request.form.to_dict(), error=str(e)
             )
 
-        candidates = []
-        if os.environ.get("BACKEND_URL"):
-            candidates.append(os.environ.get("BACKEND_URL"))
-        candidates.append("http://127.0.0.1:8000")
-        candidates.append("http://localhost:8000")
-        candidates.append("http://host.docker.internal:8000")
-
+        candidates = get_backend_candidates()
         last_error = None
         for base_url in candidates:
             try:
@@ -129,32 +128,22 @@ def gwc():
 
         filepath = request.form.get("anon", "").strip()
         db_name = request.form.get("o", "").strip()
+        gw_text = ""
 
-        if not filepath:
-            return render_template(
-                "management_creation/gwc_confirm.html",
-                lang=lang, filepath=filepath, db_name=db_name,
-                all_options=request.form.to_dict(),
-                error="Aucun fichier .gw sélectionné"
-            )
-
-        try:
-            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
-                gw_text = f.read()
-        except Exception as e:
-            return render_template(
-                "management_creation/gwc_confirm.html",
-                lang=lang, filepath=filepath, db_name=db_name,
-                all_options=request.form.to_dict(), error=str(e)
-            )
-
-        candidates = []
-        if os.environ.get("BACKEND_URL"):
-            candidates.append(os.environ.get("BACKEND_URL"))
-        candidates.append("http://127.0.0.1:8000")
-        candidates.append("http://localhost:8000")
-        candidates.append("http://host.docker.internal:8000")
-
+        if filepath:
+            try:
+                with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                    gw_text = f.read()
+            except Exception as e:
+                all_options = request.form.to_dict()
+                all_options['o'] = db_name
+                return render_template(
+                    "management_creation/gwc_confirm.html",
+                    lang=lang, filepath=filepath, db_name=db_name,
+                    all_options=all_options, error=str(e)
+                )
+        
+        candidates = get_backend_candidates()
         last_error = None
         for base_url in candidates:
             try:
@@ -171,12 +160,19 @@ def gwc():
             except Exception as e:
                 last_error = str(e)
 
-        return render_template(
-            "management_creation/gwc_confirm.html",
-            lang=lang, filepath=filepath, db_name=db_name,
-            all_options=request.form.to_dict(),
-            error=f"Appel backend échoué: {last_error}"
-        )
+        if filepath:
+            all_options = request.form.to_dict()
+            all_options['o'] = db_name
+            return render_template(
+                "management_creation/gwc_confirm.html",
+                lang=lang, filepath=filepath, db_name=db_name,
+                all_options=all_options, error=f"Appel backend échoué: {last_error}"
+            )
+        else:
+            return render_template(
+                "management_creation/gwcempty_confirm.html",
+                lang=lang, db_name=db_name, error=f"Appel backend échoué: {last_error}"
+            )
 
     else:
         if request.args.get("opt") == "check":
@@ -216,6 +212,22 @@ def gwc_result():
         lang=lang, db_name=db_name, stats=stats, error=error
     )
 
+@app.route("/gwcempty", methods=['GET'])
+def gwcempty():
+    lang = request.args.get("lang", "en")
+    db_name = request.args.get("o")
+
+    if db_name:
+        return render_template(
+            "management_creation/gwcempty_confirm.html",
+            lang=lang,
+            db_name=db_name
+        )
+    else:
+        return render_template(
+            "management_creation/gwcempty.html",
+            lang=lang
+        )
 
 @app.route("/rename", methods=['GET'])
 def rename():

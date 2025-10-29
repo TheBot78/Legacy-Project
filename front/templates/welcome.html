@@ -72,7 +72,7 @@
       <ul>
         <li>from a GEDCOM source file (<a href="{{ url_for('ged2gwb', lang=lang) }}">ged2gwb</a>)</li>
         <li>from a GeneWeb source file (<a href="{{ url_for('gwc', lang=lang) }}">gwc</a>)</li>
-        <li>from an empty file (<a href="gwsetup?lang={{ lang }};v=simple.htm">gwc</a>)</li>
+        <li>from an empty file (<a href="{{ url_for('gwcempty', lang=lang) }}">gwc</a>)</li>
       </ul>
     </div>
   </div>
