@@ -142,7 +142,7 @@ def gwc():
                     lang=lang, filepath=filepath, db_name=db_name,
                     all_options=all_options, error=str(e)
                 )
-        
+
         candidates = get_backend_candidates()
         last_error = None
         for base_url in candidates:
@@ -229,25 +229,47 @@ def gwcempty():
             lang=lang
         )
 
-@app.route("/rename", methods=['GET'])
+@app.route("/rename", methods=['GET', 'POST'])
 def rename():
-    lang = request.args.get("lang", "en")
-
-    databases, error = get_all_dbs()
+    lang = request.args.get("lang", request.form.get("lang", "en"))
     geneweb_url = "http://localhost:2317"
 
-    return render_template(
-        "management_creation/rename.html",
-        lang=lang,
-        databases=databases,
-        geneweb_url=geneweb_url,
-        error=error
-    )
+    if request.method == 'POST':
+        errors = []
+        for old_name, new_name in request.form.items():
+            if old_name == 'lang':
+                continue
+            if old_name != new_name:
+                success, error = call_backend_rename(old_name, new_name)
+                if not success:
+                    errors.append(error)
+
+        databases, list_error = get_all_dbs()
+        if list_error:
+            errors.append(list_error)
+
+        return render_template(
+            "management_creation/rename_confirm.html",
+            lang=lang,
+            databases=databases,
+            geneweb_url=geneweb_url,
+            errors=errors
+        )
+
+    else:
+        databases, error = get_all_dbs()
+        return render_template(
+            "management_creation/rename.html",
+            lang=lang,
+            databases=databases,
+            geneweb_url=geneweb_url,
+            error=error
+        )
 
 @app.route("/delete", methods=['GET'])
 def delete():
     lang = request.args.get("lang", "en")
-    
+
     dbs_to_delete = [db for db in request.args if db != 'lang']
 
     if dbs_to_delete:
@@ -274,7 +296,7 @@ def delete():
 @app.route("/delete_confirm", methods=['POST'])
 def delete_confirm_action():
     lang = request.form.get("lang", "en")
-    
+
     deleted_dbs_list = []
     errors = []
 
@@ -287,21 +309,21 @@ def delete_confirm_action():
                 errors.append(f"Failed to delete {db_name}: {error}")
 
     return redirect(url_for(
-        'delete_result', 
-        lang=lang, 
-        deleted=deleted_dbs_list, 
+        'delete_result',
+        lang=lang,
+        deleted=deleted_dbs_list,
         errors=errors
     ))
 
 @app.route("/delete_result")
 def delete_result():
     lang = request.args.get("lang", "en")
-    
+
     deleted_databases = request.args.getlist("deleted")
     errors = request.args.getlist("errors")
-    
+
     remaining_databases, list_error = get_all_dbs()
-    
+
     return render_template(
         "management_creation/delete_result.html",
         lang=lang,
@@ -350,10 +372,52 @@ def get_all_dbs():
     return databases, error
 
 def call_backend_delete(db_name):
-    print(f"[STUB] Appel backend pour SUPPRIMER {db_name}")
-    success = True
-    error = None
-    return success, error
+    base_candidates = [
+        os.environ.get("BACKEND_BASE", "http://127.0.0.1:8000"),
+        "http://localhost:8000",
+        "http://host.docker.internal:8000",
+    ]
+    last_error = None
+    for root in base_candidates:
+        try:
+            r = requests.delete(f"{root.rstrip('/')}/db/{db_name}", timeout=10)
+            if r.status_code in (200, 204):
+                try:
+                    data = r.json() if r.content else {"ok": True}
+                except Exception:
+                    data = {"ok": True}
+                if data.get("ok", True):
+                    return True, None
+                return False, f"Backend error: {data}"
+            last_error = f"HTTP {r.status_code}"
+        except Exception as e:
+            last_error = str(e)
+    return False, last_error
+
+
+def call_backend_rename(old_name, new_name):
+    base_candidates = [
+        os.environ.get("BACKEND_BASE", "http://127.0.0.1:8000"),
+        "http://localhost:8000",
+        "http://host.docker.internal:8000",
+    ]
+    last_error = None
+    for root in base_candidates:
+        try:
+            url = f"{root.rstrip('/')}/db/{old_name}/rename"
+            r = requests.post(url, json={"new_name": new_name}, timeout=10)
+            if r.status_code == 200:
+                try:
+                    data = r.json()
+                except Exception:
+                    return True, None
+                if data.get("ok", False):
+                    return True, None
+                return False, f"Backend error: {data}"
+            last_error = f"HTTP {r.status_code}"
+        except Exception as e:
+            last_error = str(e)
+    return False, last_error
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=2316, debug=True)

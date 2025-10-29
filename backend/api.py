@@ -10,6 +10,8 @@ from .name_utils import crush_name
 from .gw_parser import parse_gw_text
 from .ged_parser import parse_ged_text
 from fastapi.responses import RedirectResponse
+import shutil
+from pydantic import BaseModel as PydanticBaseModel
 
 
 BASES_DIR = Path(__file__).resolve().parent / "bases"
@@ -124,7 +126,6 @@ def parse_gw(req: GwParseRequest):
 
 @app.get("/db/{db_name}/stats")
 def stats(db_name: str):
-    # Lire les JSON depuis backend/bases/json_bases/{db_name}/
     db_dir = BASES_DIR / "json_bases" / db_name
     base_path = db_dir / "base.json"
     if not base_path.exists():
@@ -138,10 +139,8 @@ def import_gw(req: GwImportGWRequest):
     parsed = parse_gw_text(req.gw_text)
     persons: List[Person] = parsed["persons"]
     families: List[Family] = parsed["families"]
-    # Écrit la structure classique .gwb strictement
     from .storage import write_gwb_classic, write_gw, write_gwf, write_json_base
     db_dir = write_gwb_classic(BASES_DIR, req.db_name, persons, families)
-    # Écrit les JSON dans json_bases/{db}
     json_dir = write_json_base(BASES_DIR, req.db_name, persons, families, req.notes_origin_file)
     gw_path = write_gw(BASES_DIR, req.db_name, persons, families)
     gwf_path = write_gwf(BASES_DIR, req.db_name)
@@ -166,10 +165,8 @@ def import_ged(req: GwImportGEDRequest):
     parsed = parse_ged_text(req.ged_text)
     persons: List[Person] = parsed["persons"]
     families: List[Family] = parsed["families"]
-    # Écrit la structure classique .gwb strictement
     from .storage import write_gwb_classic, write_gw, write_gwf, write_json_base
     db_dir = write_gwb_classic(BASES_DIR, req.db_name, persons, families)
-    # Écrit les JSON dans json_bases/{db}
     json_dir = write_json_base(BASES_DIR, req.db_name, persons, families, req.notes_origin_file)
     gw_path = write_gw(BASES_DIR, req.db_name, persons, families)
     gwf_path = write_gwf(BASES_DIR, req.db_name)
@@ -196,11 +193,6 @@ def root():
 
 @app.get("/dbs")
 def list_dbs():
-    """
-    Retourne la liste des bases disponibles (nom des dossiers dans json_bases
-    ou le champ 'name' dans base.json si présent).
-    Utilisé par front/gwsetup/app.py -> get_all_dbs()
-    """
     json_bases_dir = BASES_DIR / "json_bases"
     if not json_bases_dir.exists():
         return []
@@ -219,5 +211,67 @@ def list_dbs():
         else:
             dbs.append(p.name)
     return dbs
+
+@app.delete("/db/{db_name}")
+def delete_db(db_name: str):
+    matches = [p for p in BASES_DIR.rglob(db_name) if p.is_dir() and p.name == db_name]
+    if not matches:
+        raise HTTPException(status_code=404, detail="Database not found")
+
+    deleted = []
+    failed = []
+    for p in matches:
+        try:
+            shutil.rmtree(p)
+            deleted.append(str(p))
+        except Exception as e:
+            failed.append({"path": str(p), "error": str(e)})
+
+    if failed:
+        return {"ok": False, "deleted": deleted, "failed": failed}
+    return {"ok": True, "deleted": deleted}
+
+
+class RenameRequest(PydanticBaseModel):
+    new_name: str
+
+
+@app.post("/db/{old_name}/rename")
+def rename_db(old_name: str, req: RenameRequest):
+    new_name = req.new_name.strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail="new_name must not be empty")
+
+    matches = [p for p in BASES_DIR.rglob(old_name) if p.is_dir() and p.name == old_name]
+    if not matches:
+        raise HTTPException(status_code=404, detail="Database not found")
+
+    for src in matches:
+        target = src.parent / new_name
+        if target.exists() and target != src:
+            raise HTTPException(status_code=400, detail=f"Target already exists: {target}")
+
+    renamed = []
+    failed = []
+    for src in matches:
+        target = src.parent / new_name
+        try:
+            src.rename(target)
+            renamed.append({"from": str(src), "to": str(target)})
+
+            base_json = target / "base.json"
+            if base_json.exists():
+                try:
+                    base = json.loads(base_json.read_text(encoding="utf-8"))
+                    base["name"] = new_name
+                    base_json.write_text(json.dumps(base, ensure_ascii=False, indent=2), encoding="utf-8")
+                except Exception:
+                    failed.append({"path": str(base_json), "error": "failed to update base.json"})
+        except Exception as e:
+            failed.append({"path": str(src), "error": str(e)})
+
+    if failed:
+        return {"ok": False, "renamed": renamed, "failed": failed}
+    return {"ok": True, "renamed": renamed}
 
 # end
