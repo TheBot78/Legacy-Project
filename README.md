@@ -145,9 +145,6 @@ pycodestyle --max-line-length=100 backend/api.py backend/storage.py
 * **POST /import_ged**: Create a new database from a GEDCOM text string.
   Payload: `{ "db_name": "...", "ged_text": "...", "notes_origin_file": "..." }`
 * **POST /import_gw**: Create a database from `.gw` source text. Payload: `{ "db_name": "...", "gw_text": "...", "notes_origin_file": "..." }`
-
-### Future Endpoints
-
 * **POST /db/rename**: Rename a database. Payload: `{ "old_db_name": "...", "new_db_name": "..." }`
 * **POST /db/delete**: Delete a database. Payload: `{ "db_name": "..." }`
 
