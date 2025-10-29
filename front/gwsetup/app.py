@@ -1,7 +1,6 @@
 import os
 import requests
 from flask import Flask, render_template, request, redirect, url_for
-# Assurez-vous que path.py est au bon endroit pour être importé
 from path import list_dir, BASE_DIR
 
 app = Flask(
@@ -27,7 +26,6 @@ def welcome():
 def ged2gwb():
     lang = request.args.get("lang", request.form.get("lang", "en"))
 
-    # --- Logique POST (quand on confirme la création) ---
     if request.method == 'POST':
         if request.form.get("cancel"):
             return redirect(url_for('welcome'))
@@ -82,8 +80,6 @@ def ged2gwb():
             all_options=request.form.to_dict(),
             error=f"Appel backend échoué: {last_error}"
         )
-
-    # --- Logique GET (navigation ou première soumission) ---
     else:
         if request.args.get("opt") == "check":
             filepath = request.args.get("filepath", "")
@@ -116,20 +112,17 @@ def ged2gwb_result():
     lang = request.args.get("lang", "en")
     db_name = request.args.get("db")
     stats, error = get_db_stats(db_name)
-    
+
     return render_template(
         "management_creation/ged2gwb_result.html",
         lang=lang, db_name=db_name, stats=stats, error=error
     )
 
 
-# --- Flux GWC (C'est la partie qui manquait) ---
-
 @app.route("/gwc", methods=['GET', 'POST'])
 def gwc():
     lang = request.args.get("lang", request.form.get("lang", "en"))
 
-    # --- Logique POST (quand on confirme la création) ---
     if request.method == 'POST':
         if request.form.get("cancel"):
             return redirect(url_for('welcome'))
@@ -168,7 +161,7 @@ def gwc():
                 backend_url = f"{base_url.rstrip('/')}/import_gw"
                 resp = requests.post(backend_url, json={
                     "db_name": db_name,
-                    "gw_text": gw_text, 
+                    "gw_text": gw_text,
                     "notes_origin_file": filepath,
                 }, timeout=20)
                 data = resp.json()
@@ -188,7 +181,7 @@ def gwc():
     # --- Logique GET (navigation ou première soumission) ---
     else:
         if request.args.get("opt") == "check":
-            filepath = request.args.get("fname", "") 
+            filepath = request.args.get("fname", "")
             db_name = request.args.get("o", "")
 
             if not db_name and filepath:
@@ -225,10 +218,22 @@ def gwc_result():
     )
 
 
-# --- Fonction utilitaire pour les stats ---
+@app.route("/rename", methods=['GET'])
+def rename():
+    lang = request.args.get("lang", "en")
+
+    databases, error = get_all_dbs()
+    geneweb_url = "http://localhost:2317"
+
+    return render_template(
+        "management_creation/rename.html",
+        lang=lang,
+        databases=databases,
+        geneweb_url=geneweb_url,
+        error=error
+    )
 
 def get_db_stats(db_name):
-    """Interroge le backend pour obtenir les stats d'une base."""
     stats = {}
     error = None
     base_candidates = [
@@ -241,11 +246,30 @@ def get_db_stats(db_name):
             r = requests.get(f"{root.rstrip('/')}/db/{db_name}/stats", timeout=10)
             if r.status_code == 200:
                 stats = r.json()
-                return stats, None # Succès
+                return stats, None
             error = f"HTTP {r.status_code}"
         except Exception as e:
             error = str(e)
-    return stats, error # Échec après toutes les tentatives
+    return stats, error
+
+def get_all_dbs():
+    databases = []
+    error = None
+    base_candidates = [
+        os.environ.get("BACKEND_BASE", "http://127.0.0.1:8000"),
+        "http://localhost:8000",
+        "http://host.docker.internal:8000",
+    ]
+    for root in base_candidates:
+        try:
+            r = requests.get(f"{root.rstrip('/')}/dbs", timeout=10)
+            if r.status_code == 200:
+                databases = r.json()
+                return databases, None
+            error = f"HTTP {r.status_code}"
+        except Exception as e:
+            error = str(e)
+    return databases, error
 
 
 if __name__ == "__main__":
