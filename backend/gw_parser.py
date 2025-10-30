@@ -1,7 +1,7 @@
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple, Optional
 
-from .models import Family, IdAllocator, Person
+from .models import Person, Family, IdAllocator
 
 
 def _clean_token(tok: str) -> str:
@@ -27,16 +27,12 @@ def _name_key(surname: str, first_names: List[str]) -> str:
     return f"{surname}|{' '.join(first_names)}".strip()
 
 
-def _parse_name_pair(
-    tokens: List[str], start_idx: int = 0
-) -> Tuple[int, str, List[str]]:
+def _parse_name_pair(tokens: List[str], start_idx: int = 0) -> Tuple[int, str, List[str]]:
     # Expect at least two tokens: surname and first-name token (can include hyphens/underscores)
     if start_idx >= len(tokens):
         return start_idx, "", []
     surname = _clean_token(tokens[start_idx])
-    first_token = (
-        _clean_token(tokens[start_idx + 1]) if start_idx + 1 < len(tokens) else ""
-    )
+    first_token = _clean_token(tokens[start_idx + 1]) if start_idx + 1 < len(tokens) else ""
     first_names = [x for x in first_token.split(" ") if x]
     return start_idx + 2, surname, first_names
 
@@ -61,9 +57,8 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
     sex_map: Dict[str, str] = {}
     notes_map: Dict[str, str] = {}
 
-    families_raw: List[Dict] = (
-        []
-    )  # {husband_key, wife_key, children_keys, marriage_date, marriage_place}
+    families_raw: List[Dict] = []
+    # husband_key, wife_key, children_keys, marriage_date, marriage_place
 
     # Helpers to get or create person
     def ensure_person(surname: str, first_names: List[str]) -> str:
@@ -92,29 +87,29 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
         if line.startswith("fam "):
             # Tokenize
             tokens = line.split()
-            # Parse husband (first two tokens after 'fam') until a control token ('#', '+', numeric marker)
+            # Parse husband: first two tokens after 'fam'
             # We keep heuristic: first two tokens are surname/firstnames
             _, hus_surname, hus_first = _parse_name_pair(tokens, 1)
             husband_key = ensure_person(hus_surname, hus_first)
             sex_map[husband_key] = "M"
 
             # Try to find wife near the end: last two non-control tokens
-            # Control tokens start with '#', or look like dates, or are '+' separators, or lone digits '0'
+            # Control tokens: '#', '+', '0', or date-like
             # We'll scan from the end to find two candidate name tokens
             wife_surname = None
             wife_first = []
             # Remove any trailing control tokens
             end_idx = len(tokens) - 1
             while end_idx >= 0 and (
-                tokens[end_idx].startswith("#")
-                or tokens[end_idx] in {"+", "od", "0"}
+                tokens[end_idx].startswith('#')
+                or tokens[end_idx] in {'+', 'od', '0'}
                 or _looks_date(tokens[end_idx])
             ):
                 end_idx -= 1
             if end_idx >= 1:
                 wife_surname = _clean_token(tokens[end_idx - 1])
                 wife_first_token = _clean_token(tokens[end_idx])
-                wife_first = [x for x in wife_first_token.split(" ") if x]
+                wife_first = [x for x in wife_first_token.split(' ') if x]
                 wife_key = ensure_person(wife_surname, wife_first)
                 sex_map[wife_key] = "F"
             else:
@@ -152,18 +147,14 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
                             if tok == "#marr":
                                 last_event = "marr"
                                 j += 1
-                                if j < len(evt_toks) and not evt_toks[j].startswith(
-                                    "#"
-                                ):
+                                if j < len(evt_toks) and not evt_toks[j].startswith('#'):
                                     fam_rec["marriage_date"] = _clean_token(evt_toks[j])
                                     j += 1
                                 continue
                             if tok in {"#p", "#mp"}:
                                 j += 1
                                 place_tokens = []
-                                while j < len(evt_toks) and not evt_toks[j].startswith(
-                                    "#"
-                                ):
+                                while j < len(evt_toks) and not evt_toks[j].startswith('#'):
                                     place_tokens.append(evt_toks[j])
                                     j += 1
                                 place = _normalize_place(" ".join(place_tokens))
@@ -184,23 +175,23 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
                         child_toks = child_line.split()
                         if (
                             len(child_toks) >= 3
-                            and child_toks[0] == "-"
-                            and child_toks[1] in {"h", "f"}
+                            and child_toks[0] == '-'
+                            and child_toks[1] in {'h', 'f'}
                         ):
                             gender = child_toks[1]
                             _, csurname, cfirst = _parse_name_pair(child_toks, 2)
                             ckey = ensure_person(csurname, cfirst)
-                            sex_map[ckey] = "M" if gender == "h" else "F"
+                            sex_map[ckey] = 'M' if gender == 'h' else 'F'
                             # try to pick a date token following name for birth
                             # scan remaining tokens for a date-like and assign as birth_date
-                            for t in child_toks[2 + len(cfirst) + 1 :]:
+                            for t in child_toks[2+len(cfirst)+1:]:
                                 if _looks_date(t):
-                                    persons_map[ckey]["birth_date"] = _clean_token(t)
+                                    persons_map[ckey]['birth_date'] = _clean_token(t)
                                     break
                             # set parental links
-                            persons_map[ckey]["father_key"] = fam_rec["husband_key"]
-                            persons_map[ckey]["mother_key"] = fam_rec["wife_key"]
-                            fam_rec["children_keys"].append(ckey)
+                            persons_map[ckey]['father_key'] = fam_rec['husband_key']
+                            persons_map[ckey]['mother_key'] = fam_rec['wife_key']
+                            fam_rec['children_keys'].append(ckey)
                         i += 1
                     if i < len(lines) and lines[i].startswith("end"):
                         i += 1
@@ -243,7 +234,7 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
                     if tok in {"#birt", "#bapt", "#deat"}:
                         last_evt = tok
                         j += 1
-                        if j < len(evt_toks) and not evt_toks[j].startswith("#"):
+                        if j < len(evt_toks) and not evt_toks[j].startswith('#'):
                             val = _clean_token(evt_toks[j])
                             if tok == "#birt":
                                 persons_map[pkey]["birth_date"] = val
@@ -254,7 +245,7 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
                     if tok in {"#p", "#bp", "#dp"}:
                         j += 1
                         place_tokens = []
-                        while j < len(evt_toks) and not evt_toks[j].startswith("#"):
+                        while j < len(evt_toks) and not evt_toks[j].startswith('#'):
                             place_tokens.append(evt_toks[j])
                             j += 1
                         place = _normalize_place(" ".join(place_tokens))
@@ -281,20 +272,18 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
         key_to_id[key] = pid
         # Determine sex
         sex = sex_map.get(key)
-        persons_out.append(
-            Person(
-                id=pid,
-                first_names=data["first_names"],
-                surname=data["surname"],
-                sex=sex,
-                father_id=None,  # set after building families
-                mother_id=None,
-                birth_date=data["birth_date"],
-                birth_place=data["birth_place"],
-                death_date=data["death_date"],
-                death_place=data["death_place"],
-            )
-        )
+        persons_out.append(Person(
+            id=pid,
+            first_names=data["first_names"],
+            surname=data["surname"],
+            sex=sex,
+            father_id=None,  # set after building families
+            mother_id=None,
+            birth_date=data["birth_date"],
+            birth_place=data["birth_place"],
+            death_date=data["death_date"],
+            death_place=data["death_place"],
+        ))
 
     # Map for quick update of parent ids
     persons_by_key = {pkey: p for pkey, p in zip(key_to_id.keys(), persons_out)}

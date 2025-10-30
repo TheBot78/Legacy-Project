@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ lang }}">
 <head>
-  <!-- Copyright (c) 1998-2006 INRIA - GeneWeb -->
   <meta charset="utf-8">
   <meta name="robots" content="none">
   <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon_gwsetup.png') }}">
@@ -71,9 +70,9 @@
     <div style="float:left; width:50%;">
       <span style="font-weight:bold;">Create Family Tree</span>
       <ul>
-        <li>from a GEDCOM source file (<a href="gwsetup?lang={{ lang }};v=ged2gwb.htm">ged2gwb</a>)</li>
-        <li>from a GeneWeb source file (<a href="gwsetup?lang={{ lang }};v=gwc.htm">gwc</a>)</li>
-        <li>from an empty file (<a href="gwsetup?lang={{ lang }};v=simple.htm">gwc</a>)</li>
+        <li>from a GEDCOM source file (<a href="{{ url_for('ged2gwb', lang=lang) }}">ged2gwb</a>)</li>
+        <li>from a GeneWeb source file (<a href="{{ url_for('gwc', lang=lang) }}">gwc</a>)</li>
+        <li>from an empty file (<a href="{{ url_for('gwcempty', lang=lang) }}">gwc</a>)</li>
       </ul>
     </div>
   </div>
@@ -85,8 +84,8 @@
       <span><b>Advanced Options</b></span>
       <ul>
         <li>Clean up (<a href="gwsetup?lang={{ lang }};v=cleanup.htm">cleanup</a>)</li>
-        <li>Renaming (<a href="gwsetup?lang={{ lang }};v=rename.htm">rename</a>)</li>
-        <li>Deletion (<a href="gwsetup?lang={{ lang }};v=delete.htm">delete</a>)</li>
+        <li>Renaming (<a href="{{ url_for('rename', lang=lang) }}">rename</a>)</li>
+        <li>Deletion (<a href="{{ url_for('delete', lang=lang) }}">delete</a>)</li>
         <li>Merging with other databases (<a href="gwsetup?lang={{ lang }};v=merge.htm">merge</a>)</li>
         <li>Saving and restoring (<a href="gwsetup?lang={{ lang }};v=save.htm">gwu</a>)</li>
         <li>Initialisation of consanguinities (<a href="gwsetup?lang={{ lang }};v=consang.htm">consang</a>)</li>
@@ -135,4 +134,4 @@
     </div>
   </div>
 </body>
-</html>cledm
+</html>

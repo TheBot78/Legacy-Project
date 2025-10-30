@@ -26,6 +26,9 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Data files
+backend/bases/
+
 # Virtual environment
 venv/
 ENV/

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="none">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon_gwsetup.png') }}">
+
+  <title>Creation of a database</title>
+
+  <style>
+* {
+  font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol;
+}
+pre {
+  font-family: monospace;
+}
+a.j {
+  font-family: monospace;
+}
+table.setup {
+  border:1px solid;
+  border-radius:4px;
+  border-color:#5bc0de;
+}
+div.welcome {
+  width: 830px;
+  border: solid 2px #5bc0de;
+  border-radius:6px;
+  text-align: left;
+  overflow: auto;
+  margin-left: auto;
+  margin-right: auto;
+  padding:5px;">
+}
+  </style>
+
+</head>
+
+<body >
+
+<div style="background:url('{{ url_for('static', filename='images/gwlogo.png') }}') no-repeat left top; text-align:center; height:95px; line-height:95px; color:#2f6400;">
+<h1 style="margin:0;">Creation of a database</h1>
+</div>
+<p>
+<ul>
+
+<li>
+We are going to create a database named "<b>{{ db_name }}</b>". Remark: this operation
+can answer in the twinkling of a eye or take some tenths of seconds or
+some minutes, depending on the cases. Be patient.
+
+<p >
+Push the button below to create you database
+:
+<p>
+<form method="post" action="{{ url_for('ged2gwb') }}">
+<input type=hidden name=lang value="{{ lang }}">
+<input type=hidden name=f value="on"> {% for key, value in all_options.items() %}
+  {% if key == 'filepath' %}
+    <input type="hidden" name="anon" value="{{ value }}">
+  {% elif key not in ['opt', 'lang'] %}
+    <input type="hidden" name="{{ key }}" value="{{ value }}">
+  {% endif %}
+{% endfor %}
+
+<dl><dt><dd>
+<input type="submit" value="Ok">
+<input type="submit" name="cancel" value="Cancel" formaction="{{ url_for('welcome') }}" formmethod="get">
+</dl>
+</form>
+<p>
+For information, this operation corresponds to the following commands:
+<pre>
+     $ cd ... (chemin vers le dossier des bases)
+     $ .../ged2gwb -f <b>{{ filepath }}</b> -o <b>{{ db_name }}</b> > comm.log
+</pre>
+This builds a directory named "<b>{{ db_name }}</b>.gwb".
+</ul>
+</body>
+</html>
+<br><div id="footer"><hr><div><em><a href="https://github.com/geneweb/geneweb/"><img src="{{ url_for('static', filename='images/logo_bas.png') }}" style="border:0"></a> Version 7.1-beta Copyright &copy; 1998-2021</em></div></div></body></html>
