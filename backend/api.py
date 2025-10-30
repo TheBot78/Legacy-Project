@@ -128,9 +128,19 @@ def stats(db_name: str):
     db_dir = BASES_DIR / "json_bases" / db_name
     base_path = db_dir / "base.json"
     if not base_path.exists():
-        raise HTTPException(status_code=404, detail="Base not found")
-    base = json.loads(base_path.read_text(encoding="utf-8"))
-    return base.get("counts", {})
+        # Fallback pour lire le fichier 'base' du dossier .gwb
+        base_path = BASES_DIR / f"{db_name}.gwb" / "base"
+        if not base_path.exists():
+            raise HTTPException(status_code=404, detail="Base not found")
+    
+    try:
+        base = json.loads(base_path.read_text(encoding="utf-8"))
+        # Le fichier 'base' de galichet ne contient que les comptes
+        if "persons_count" in base:
+            return {"persons": base.get("persons_count"), "families": base.get("families_count")}
+        return base.get("counts", {})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse base file: {str(e)}")
 
 
 @app.post("/import_gw")
@@ -193,27 +203,39 @@ def root():
 @app.get("/dbs")
 def list_dbs():
     json_bases_dir = BASES_DIR / "json_bases"
-    if not json_bases_dir.exists():
-        return []
-
     dbs = []
-    for p in sorted(json_bases_dir.iterdir()):
-        if not p.is_dir():
-            continue
-        base_file = p / "base.json"
-        if base_file.exists():
-            try:
-                base = json.loads(base_file.read_text(encoding="utf-8"))
-                dbs.append(base.get("name", p.name))
-            except Exception:
+    
+    if json_bases_dir.exists():
+        for p in sorted(json_bases_dir.iterdir()):
+            if not p.is_dir():
+                continue
+            base_file = p / "base.json"
+            if base_file.exists():
+                try:
+                    base = json.loads(base_file.read_text(encoding="utf-8"))
+                    dbs.append(base.get("name", p.name))
+                except Exception:
+                    dbs.append(p.name)
+            else:
                 dbs.append(p.name)
-        else:
-            dbs.append(p.name)
-    return dbs
+
+    # Vérifie aussi les dossiers .gwb classiques qui n'ont pas de json_base
+    for p in sorted(BASES_DIR.iterdir()):
+        if p.is_dir() and p.suffix == ".gwb":
+            db_name = p.stem
+            if db_name not in dbs:
+                dbs.append(db_name)
+                
+    return sorted(list(set(dbs))) # Retourne une liste unique triée
 
 @app.delete("/db/{db_name}")
 def delete_db(db_name: str):
-    matches = [p for p in BASES_DIR.rglob(db_name) if p.is_dir() and p.name == db_name]
+    # Cible les deux dossiers
+    json_dir = BASES_DIR / "json_bases" / db_name
+    gwb_dir = BASES_DIR / f"{db_name}.gwb"
+    
+    matches = [p for p in [json_dir, gwb_dir] if p.exists() and p.is_dir()]
+    
     if not matches:
         raise HTTPException(status_code=404, detail="Database not found")
 
@@ -241,31 +263,37 @@ def rename_db(old_name: str, req: RenameRequest):
     if not new_name:
         raise HTTPException(status_code=400, detail="new_name must not be empty")
 
-    matches = [p for p in BASES_DIR.rglob(old_name) if p.is_dir() and p.name == old_name]
+    # Cible les deux dossiers
+    json_dir_old = BASES_DIR / "json_bases" / old_name
+    gwb_dir_old = BASES_DIR / f"{old_name}.gwb"
+    matches = [p for p in [json_dir_old, gwb_dir_old] if p.exists() and p.is_dir()]
+
     if not matches:
         raise HTTPException(status_code=404, detail="Database not found")
 
-    for src in matches:
-        target = src.parent / new_name
-        if target.exists() and target != src:
-            raise HTTPException(status_code=400, detail=f"Target already exists: {target}")
-
     renamed = []
     failed = []
+
     for src in matches:
-        target = src.parent / new_name
+        target = src.parent / (new_name if src.name == old_name else f"{new_name}.gwb")
+        
+        if target.exists() and target != src:
+            failed.append({"path": str(src), "error": f"Target already exists: {target}"})
+            continue
         try:
             src.rename(target)
             renamed.append({"from": str(src), "to": str(target)})
 
-            base_json = target / "base.json"
-            if base_json.exists():
-                try:
-                    base = json.loads(base_json.read_text(encoding="utf-8"))
-                    base["name"] = new_name
-                    base_json.write_text(json.dumps(base, ensure_ascii=False, indent=2), encoding="utf-8")
-                except Exception:
-                    failed.append({"path": str(base_json), "error": "failed to update base.json"})
+            # Met à jour le base.json si c'est le dossier json_bases
+            if src.name == old_name: # C'est json_dir
+                base_json = target / "base.json"
+                if base_json.exists():
+                    try:
+                        base = json.loads(base_json.read_text(encoding="utf-8"))
+                        base["name"] = new_name
+                        base_json.write_text(json.dumps(base, ensure_ascii=False, indent=2), encoding="utf-8")
+                    except Exception:
+                        failed.append({"path": str(base_json), "error": "failed to update base.json name"})
         except Exception as e:
             failed.append({"path": str(src), "error": str(e)})
 
@@ -274,16 +302,24 @@ def rename_db(old_name: str, req: RenameRequest):
     return {"ok": True, "renamed": renamed}
 
 
-def load_db_json(db_name: str, filename: str):
-    """Helper pour charger un fichier JSON d'une base."""
-    db_dir = BASES_DIR / "json_bases" / db_name
-    file_path = db_dir / filename
+def load_db_file(db_name: str, filename: str, is_json: bool = True):
+    """Helper to load a file from json_bases or .gwb"""
+    file_path = BASES_DIR / "json_bases" / db_name / filename
     if not file_path.exists():
-        raise HTTPException(status_code=404, detail=f"{filename} not found for database {db_name}")
+        file_path = BASES_DIR / f"{db_name}.gwb" / filename
+        if not file_path.exists():
+             raise HTTPException(status_code=404, detail=f"{filename} not found for database {db_name}")
     try:
-        return json.loads(file_path.read_text(encoding="utf-8"))
+        content = file_path.read_text(encoding="utf-8")
+        # Les .dat sont juste des listes de strings, un par ligne.
+        if is_json:
+            return json.loads(content)
+        else:
+            # Pour snames.dat, fnames.dat
+            return [line for line in content.splitlines() if line.strip() and not line.startswith("#")]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to parse {filename}: {str(e)}")
+
 
 @app.get("/db/{db_name}/search")
 def search_db(db_name: str, n: Optional[str] = None, p: Optional[str] = None):
@@ -291,37 +327,130 @@ def search_db(db_name: str, n: Optional[str] = None, p: Optional[str] = None):
         raise HTTPException(status_code=400, detail="Search query (n or p) is required")
 
     try:
-        base = load_db_json(db_name, "base.json")
-        names_inx = load_db_json(db_name, "names.inx.json")
+        base_data = None
+        snames_list = []
+        fnames_list = []
+        persons_list = []
+        string_table = {} 
+        is_gedcom_format = False
+
+        try:
+            base_data = load_db_file(db_name, "base.json", is_json=True)
+            if "strings" in base_data:
+                is_gedcom_format = True
+                string_list = base_data.get("strings", [])
+                for s_id, text in enumerate(string_list):
+                    string_table[s_id] = text
+                snames_list = string_list
+                fnames_list = string_list
+                persons_list = base_data.get("persons", [])
+                if not persons_list and base_data.get("persons_by_id"):
+                     persons_list = base_data.get("persons_by_id").values()
+            
+        except HTTPException:
+            pass # Fichier non trouvé, on suppose le format GW
+        except Exception as e:
+             return {"ok": False, "error": f"Error loading base.json: {str(e)}", "results": []}
+
+        if not is_gedcom_format:
+            try:
+                if not base_data:
+                    base_data = load_db_file(db_name, "base", is_json=True) # Fichier "base" pour galichet
+                
+                snames_list = load_db_file(db_name, "snames.dat", is_json=False)
+                fnames_list = load_db_file(db_name, "fnames.dat", is_json=False)
+                
+                # Le format GW (d'après vos fichiers) n'a pas de liste "persons"
+                # Nous devons la reconstruire en lisant le .gw brut
+                gw_text = (BASES_DIR / f"{db_name}.gw").read_text(encoding="utf-8")
+                parsed = parse_gw_text(gw_text)
+                persons_list = [p.__dict__ for p in parsed["persons"]]
+            except Exception as e:
+                 return {"ok": False, "error": f"Failed to load GW data for search: {str(e)}", "results": []}
+
+        matching_surname_ids = set()
+        matching_firstname_ids = set()
+        
+        crushed_n = crush_name(n) if n else None
+        crushed_p = crush_name(p) if p else None
+
+        if n:
+            for i, name in enumerate(snames_list):
+                if crush_name(name) == crushed_n:
+                    matching_surname_ids.add(i)
+        
+        if p:
+            for i, name in enumerate(fnames_list):
+                if crush_name(name) == crushed_p:
+                    matching_firstname_ids.add(i)
+
+        results = []
+        
+        for person in persons_list:
+            found = False
+            
+            if is_gedcom_format:
+                surname_id = person.get("surname_id")
+                firstname_ids = person.get("first_name_ids", [])
+                
+                if n and surname_id in matching_surname_ids:
+                    found = True
+                
+                if p and not found:
+                    if any(fn_id in matching_firstname_ids for fn_id in firstname_ids):
+                        found = True
+            
+            else:
+                surname_str = person.get("surname", "")
+                first_names_list = person.get("first_names", [])
+
+                if n and crush_name(surname_str) == crushed_n:
+                    found = True
+                
+                if p and not found:
+                    if any(crush_name(fn) == crushed_p for fn in first_names_list):
+                        found = True
+
+            if found:
+                # Reconstruire l'objet Personne avec les vrais noms
+                if is_gedcom_format:
+                    surname_id = person.get("surname_id")
+                    firstname_ids = person.get("first_name_ids", [])
+                    surname = string_table.get(surname_id, "?")
+                    first_names = [string_table.get(fn_id, "?") for fn_id in firstname_ids]
+
+                    birth_date_id = person.get("birth_date_id")
+                    death_date_id = person.get("death_date_id")
+                    birth_place_id = person.get("birth_place_id")
+                    death_place_id = person.get("death_place_id")
+
+                    birth_date = string_table.get(birth_date_id, "") if birth_date_id is not None else ""
+                    death_date = string_table.get(death_date_id, "") if death_date_id is not None else ""
+                    birth_place = string_table.get(birth_place_id, "") if birth_place_id is not None else ""
+                    death_place = string_table.get(death_place_id, "") if death_place_id is not None else ""
+                
+                else:
+                    surname = person.get("surname", "?")
+                    first_names = person.get("first_names", ["?"])
+                    birth_date = person.get("birth_date", "") or ""
+                    death_date = person.get("death_date", "") or ""
+                    birth_place = person.get("birth_place", "") or ""
+                    death_place = person.get("death_place", "") or ""
+
+                results.append({
+                    "id": person.get("id"),
+                    "surname": surname,
+                    "first_names": first_names,
+                    "sex": person.get("sex"),
+                    "birth_date": birth_date,
+                    "birth_place": birth_place,
+                    "death_date": death_date,
+                    "death_place": death_place
+                })
+                
     except HTTPException as e:
         return {"ok": False, "error": e.detail, "results": []}
-
-    persons_by_id = base.get("persons_by_id", {})
-    surname_idx = names_inx.get("surnames", {})
-    firstname_idx = names_inx.get("firstnames", {})
-    
-    matching_ids = set()
-
-    if n:
-        crushed_n = crush_name(n)
-        # *** CORRECTION ***
-        # Itère sur les clés de l'index et compare les versions "crush"
-        for surname_key, id_list in surname_idx.items():
-            if crush_name(surname_key) == crushed_n:
-                matching_ids.update(id_list)
-    
-    if p:
-        crushed_p = crush_name(p)
-        # *** CORRECTION ***
-        # Itère sur les clés de l'index et compare les versions "crush"
-        for firstname_key, id_list in firstname_idx.items():
-            if crush_name(firstname_key) == crushed_p:
-                matching_ids.update(id_list)
-
-    results = []
-    for person_id in matching_ids:
-        person_data = persons_by_id.get(str(person_id))
-        if person_data:
-            results.append(person_data)
+    except Exception as e:
+        return {"ok": False, "error": str(e), "results": []}
 
     return {"ok": True, "results": results}
