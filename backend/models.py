@@ -43,7 +43,8 @@ class IdAllocator:
         return nid
 
 
-def in_memory_strings(persons: List[Person], families: List[Family]) -> Dict[str, int]:
+def in_memory_strings(persons: List[Person],
+                      families: List[Family]) -> Dict[str, int]:
     """Collect and deduplicate all strings referenced by persons/families.
     Returns a mapping string -> string_id.
     """
