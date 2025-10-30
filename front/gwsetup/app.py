@@ -3,6 +3,11 @@ import requests
 from flask import Flask, render_template, request, redirect, url_for
 from path import list_dir, BASE_DIR
 
+app = Flask(
+    __name__,
+    static_folder="../static",
+    template_folder="../templates"
+)
 
 def get_backend_candidates():
     candidates = []
@@ -16,7 +21,6 @@ def get_backend_candidates():
 @app.route("/")
 def home():
     return redirect(url_for("welcome"))
-
 
 @app.route("/welcome")
 def welcome():
@@ -138,7 +142,7 @@ def gwc():
                     lang=lang, filepath=filepath, db_name=db_name,
                     all_options=all_options, error=str(e)
                 )
-
+        
         candidates = get_backend_candidates()
         last_error = None
         for base_url in candidates:
@@ -243,7 +247,7 @@ def rename():
         databases, list_error = get_all_dbs()
         if list_error:
             errors.append(list_error)
-
+        
         return render_template(
             "management_creation/rename_confirm.html",
             lang=lang,
@@ -251,7 +255,7 @@ def rename():
             geneweb_url=geneweb_url,
             errors=errors
         )
-
+    
     else:
         databases, error = get_all_dbs()
         return render_template(
@@ -265,7 +269,7 @@ def rename():
 @app.route("/delete", methods=['GET'])
 def delete():
     lang = request.args.get("lang", "en")
-
+    
     dbs_to_delete = [db for db in request.args if db != 'lang']
 
     if dbs_to_delete:
@@ -292,7 +296,7 @@ def delete():
 @app.route("/delete_confirm", methods=['POST'])
 def delete_confirm_action():
     lang = request.form.get("lang", "en")
-
+    
     deleted_dbs_list = []
     errors = []
 
@@ -305,21 +309,21 @@ def delete_confirm_action():
                 errors.append(f"Failed to delete {db_name}: {error}")
 
     return redirect(url_for(
-        'delete_result',
-        lang=lang,
-        deleted=deleted_dbs_list,
+        'delete_result', 
+        lang=lang, 
+        deleted=deleted_dbs_list, 
         errors=errors
     ))
 
 @app.route("/delete_result")
 def delete_result():
     lang = request.args.get("lang", "en")
-
+    
     deleted_databases = request.args.getlist("deleted")
     errors = request.args.getlist("errors")
-
+    
     remaining_databases, list_error = get_all_dbs()
-
+    
     return render_template(
         "management_creation/delete_result.html",
         lang=lang,
