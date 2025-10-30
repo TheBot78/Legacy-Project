@@ -19,7 +19,7 @@ BASES_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="GeneWeb-like Python Backend", version="0.1")
 
-
+# ... [Toutes les classes d'Input et les endpoints /import restent identiques] ...
 class PersonInput(BaseModel):
     id: Optional[int] = None
     first_names: List[str]
@@ -311,18 +311,15 @@ def load_db_file(db_name: str, filename: str, is_json: bool = True):
              raise HTTPException(status_code=404, detail=f"{filename} not found for database {db_name}")
     try:
         content = file_path.read_text(encoding="utf-8")
-        # Les .dat sont juste des listes de strings, un par ligne.
         if is_json:
             return json.loads(content)
         else:
-            # Pour snames.dat, fnames.dat
             return [line for line in content.splitlines() if line.strip() and not line.startswith("#")]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to parse {filename}: {str(e)}")
 
-# --- NOUVELLE LOGIQUE DE RECHERCHE ---
+# --- LOGIQUE DE RECHERCHE ET DE PERSONNE ---
 
-# Classe pour typer la structure de l'arbre
 class PersonNode(BaseModel):
     id: int
     surname: str
@@ -333,18 +330,16 @@ class PersonNode(BaseModel):
     spouse: Optional['PersonNode'] = None
     children: List['PersonNode'] = []
 
-# Met à jour la classe pour permettre les références circulaires
 PersonNode.model_rebuild()
 
 
 class SearchContext:
-    """Classe Helper pour stocker les données chargées pendant une recherche."""
     def __init__(self, db_name: str):
         self.db_name = db_name
         self.persons_list: List[Dict] = []
         self.families_list: List[Dict] = []
         self.persons_by_id: Dict[int, Dict] = {}
-        self.families_by_person_id: Dict[int, List[Dict]] = {} # Familles où la personne est parent
+        self.families_by_person_id: Dict[int, List[Dict]] = {}
         self.string_table: Dict[int, str] = {}
         self.snames_list: List[str] = []
         self.fnames_list: List[str] = []
@@ -367,7 +362,7 @@ class SearchContext:
                 self.families_list = base_data.get("families", [])
             
         except HTTPException:
-            pass # Fichier non trouvé, on suppose le format GW
+            pass 
         except Exception as e:
              raise HTTPException(status_code=500, detail=f"Error loading base.json: {str(e)}")
 
@@ -380,9 +375,17 @@ class SearchContext:
                 self.persons_list = [p.__dict__ for p in parsed["persons"]]
                 self.families_list = [f.__dict__ for f in parsed["families"]]
             except Exception as e:
-                 raise HTTPException(status_code=500, detail=f"Failed to load GW data for search: {str(e)}")
+                 try:
+                    ged_text = (BASES_DIR / f"{self.db_name}.ged").read_text(encoding="utf-8")
+                    parsed = parse_ged_text(ged_text)
+                    self.persons_list = [p.__dict__ for p in parsed["persons"]]
+                    self.families_list = [f.__dict__ for f in parsed["families"]]
+                    self.is_gedcom_format = False
+                    self.snames_list = list(set([p.get("surname", "") for p in self.persons_list]))
+                    self.fnames_list = list(set([fn for p in self.persons_list for fn in p.get("first_names", [])]))
+                 except Exception as e2:
+                    raise HTTPException(status_code=500, detail=f"Failed to load GW/GED data: {str(e)} / {str(e2)}")
         
-        # Créer des index pour un accès rapide
         for p in self.persons_list:
             self.persons_by_id[p["id"]] = p
             
@@ -393,7 +396,6 @@ class SearchContext:
                 self.families_by_person_id.setdefault(f["wife_id"], []).append(f)
 
     def _get_surname(self, person_dict: Dict) -> str:
-        """Helper pour récupérer le nom de famille, quel que soit le format."""
         if not person_dict:
             return ""
         if self.is_gedcom_format:
@@ -402,7 +404,6 @@ class SearchContext:
         return person_dict.get("surname", "")
 
     def _build_person_node(self, person_id: int) -> PersonNode:
-        """Construit un nœud de personne simple (sans enfants/conjoint)."""
         person = self.persons_by_id.get(person_id)
         if not person:
             return None
@@ -432,54 +433,35 @@ class SearchContext:
         )
 
     def _build_branch(self, person_id: int, crushed_surname: str, processed_ids: set) -> Optional[PersonNode]:
-        """Construit récursivement une branche à partir d'un individu."""
-        
-        # 1. Vérifications initiales
         if person_id in processed_ids:
-            return None # Éviter les boucles infinies
-        
+            return None 
         person_dict = self.persons_by_id.get(person_id)
         if not person_dict:
             return None
-        
         person_node = self._build_person_node(person_id)
         if not person_node:
             return None
-            
         processed_ids.add(person_id)
         
-        # 2. Trouver les conjoints et les enfants
         families_as_parent = self.families_by_person_id.get(person_id, [])
-        
-        # Pour cet affichage, prenons la première famille trouvée (simplification)
         if families_as_parent:
             fam = families_as_parent[0] 
-            spouse_id = None
-            if fam.get("husband_id") == person_id:
-                spouse_id = fam.get("wife_id")
-            else:
-                spouse_id = fam.get("husband_id")
-
+            spouse_id = fam.get("wife_id") if fam.get("husband_id") == person_id else fam.get("husband_id")
             if spouse_id:
                 person_node.spouse = self._build_person_node(spouse_id)
             
-            # 3. Récursion sur les enfants
             for child_id in fam.get("children_ids", []):
                 child_dict = self.persons_by_id.get(child_id)
                 if not child_dict:
                     continue
-                
-                # IMPORTANT : On ne continue la branche que si l'enfant a le MÊME nom
                 child_surname = self._get_surname(child_dict)
                 if crush_name(child_surname) == crushed_surname:
                     child_node = self._build_branch(child_id, crushed_surname, processed_ids)
                     if child_node:
                         person_node.children.append(child_node)
-
         return person_node
 
     def find_by_list(self, crushed_n: str, crushed_p: str) -> List[Dict]:
-        """Recherche simple (liste)."""
         matching_surname_ids = set()
         matching_firstname_ids = set()
         
@@ -487,7 +469,6 @@ class SearchContext:
             for i, name in enumerate(self.snames_list):
                 if crush_name(name) == crushed_n:
                     matching_surname_ids.add(i)
-        
         if crushed_p:
             for i, name in enumerate(self.fnames_list):
                 if crush_name(name) == crushed_p:
@@ -496,94 +477,170 @@ class SearchContext:
         results = []
         for person in self.persons_list:
             found = False
-            
             if self.is_gedcom_format:
                 surname_id = person.get("surname_id")
                 firstname_ids = person.get("first_name_ids", [])
-                
                 if crushed_n and surname_id not in matching_surname_ids:
-                    continue # Doit correspondre au nom si fourni
+                    continue
                 if crushed_p and not any(fn_id in matching_firstname_ids for fn_id in firstname_ids):
-                    continue # Doit correspondre au prénom si fourni
-                
-                # Si on arrive ici, la personne correspond
+                    continue
                 found = True
-
-            else: # Format GW
+            else: 
                 surname_str = person.get("surname", "")
                 first_names_list = person.get("first_names", [])
-
                 if crushed_n and crush_name(surname_str) != crushed_n:
                     continue
                 if crushed_p and not any(crush_name(fn) == crushed_p for fn in first_names_list):
                     continue
-                
                 found = True
 
             if found:
                 node = self._build_person_node(person.get("id"))
                 if node:
-                    # Renvoyer un dict simple pour le tableau, pas un objet Pydantic
                     results.append(node.model_dump())
         return results
 
     def find_by_surname_tree(self, crushed_n: str) -> List[PersonNode]:
-        """Recherche le nom de famille et construit les arbres."""
-        
-        # --- DÉBUT DE LA LOGIQUE CORRIGÉE (V4) ---
-        
-        # 1. Trouver tous les IDs des personnes avec ce nom
         person_ids_with_surname = set()
         for pid, p in self.persons_by_id.items():
             surname = self._get_surname(p)
             if crush_name(surname) == crushed_n:
                 person_ids_with_surname.add(pid)
-        
         if not person_ids_with_surname:
             return []
 
-        # 2. Déterminer les racines
         root_ids = set()
         for pid in person_ids_with_surname:
             person_dict = self.persons_by_id.get(pid)
             if not person_dict:
                 continue
-
             father_id = person_dict.get("father_id")
             mother_id = person_dict.get("mother_id")
-
-            # Vérifie le père
             father_has_surname = False
             if father_id:
                 father_dict = self.persons_by_id.get(father_id)
                 if crush_name(self._get_surname(father_dict)) == crushed_n:
                     father_has_surname = True
-            
-            # Vérifie la mère
             mother_has_surname = False
             if mother_id:
                 mother_dict = self.persons_by_id.get(mother_id)
                 if crush_name(self._get_surname(mother_dict)) == crushed_n:
                     mother_has_surname = True
-
-            # Si AUCUN parent n'a le nom, c'est une racine
             if not father_has_surname and not mother_has_surname:
                 root_ids.add(pid)
         
-        # --- FIN DE LA LOGIQUE CORRIGÉE (V4) ---
-
-        # 3. Construire les branches à partir des racines
         branches = []
-        processed_ids = set() # Pour éviter les doublons et les boucles
-        
-        for rid in sorted(list(root_ids)):
+        processed_ids = set()
+        for rid in root_ids:
             if rid not in processed_ids:
                 branch = self._build_branch(rid, crushed_n, processed_ids)
                 if branch:
                     branches.append(branch)
-
+        
+        def sort_key(node: PersonNode):
+            first_name_sort = " ".join(node.first_names)
+            if any(name.lower() in ["many", "mr.", "mrs."] for name in node.first_names):
+                return f"z_{first_name_sort}"
+            return f"a_{first_name_sort}"
+        branches.sort(key=sort_key)
+        
         return branches
 
+    # --- NOUVELLE FONCTION AJOUTÉE ---
+    def find_person_details(self, crushed_n: str, crushed_p: str) -> Optional[Dict]:
+        """Trouve une personne et renvoie ses détails (parents, familles)."""
+        person_id = None
+        
+        # 1. Trouver l'ID de la personne
+        for p in self.persons_list:
+            surname = self._get_surname(p)
+            first_names = []
+            if self.is_gedcom_format:
+                first_names = [self.string_table.get(fn_id, "?") for fn_id in p.get("first_name_ids", [])]
+            else:
+                first_names = p.get("first_names", [])
+            
+            # Comparer le nom complet
+            if crush_name(surname) == crushed_n and crush_name(" ".join(first_names)) == crushed_p:
+                person_id = p.get("id")
+                break
+        
+        if person_id is None:
+            return None # Personne non trouvée
+
+        # 2. Construire le nœud de la personne principale
+        person_node = self._build_person_node(person_id)
+        if not person_node:
+            return None
+            
+        person_dict = self.persons_by_id.get(person_id)
+
+        # 3. Récupérer les parents
+        father_node = None
+        if person_dict.get("father_id"):
+            father_node = self._build_person_node(person_dict["father_id"])
+            
+        mother_node = None
+        if person_dict.get("mother_id"):
+            mother_node = self._build_person_node(person_dict["mother_id"])
+
+        # 4. Récupérer les familles (conjoints + enfants)
+        families_data = []
+        families_as_parent = self.families_by_person_id.get(person_id, [])
+        for fam in families_as_parent:
+            spouse_id = None
+            if fam.get("husband_id") == person_id:
+                spouse_id = fam.get("wife_id")
+            else:
+                spouse_id = fam.get("husband_id")
+            
+            spouse_node = None
+            if spouse_id:
+                spouse_node = self._build_person_node(spouse_id)
+                
+            children_nodes = []
+            for child_id in fam.get("children_ids", []):
+                child_node = self._build_person_node(child_id)
+                if child_node:
+                    children_nodes.append(child_node)
+            
+            families_data.append({
+                "spouse": spouse_node.model_dump() if spouse_node else None,
+                "children": [c.model_dump() for c in children_nodes]
+            })
+
+        return {
+            "person": person_node.model_dump(),
+            "father": father_node.model_dump() if father_node else None,
+            "mother": mother_node.model_dump() if mother_node else None,
+            "families": families_data
+        }
+    # --- FIN DE LA NOUVELLE FONCTION ---
+
+# --- NOUVEL ENDPOINT AJOUTÉ ---
+@app.get("/db/{db_name}/person")
+def get_person_details(db_name: str, n: str, p: str):
+    """Récupère les détails complets pour une seule personne."""
+    if not n or not p:
+        raise HTTPException(status_code=400, detail="Surname (n) and firstname (p) are required")
+    
+    try:
+        ctx = SearchContext(db_name)
+        crushed_n = crush_name(n)
+        crushed_p = crush_name(p)
+        
+        details = ctx.find_person_details(crushed_n, crushed_p)
+        
+        if not details:
+            raise HTTPException(status_code=404, detail="Person not found")
+            
+        return {"ok": True, "details": details}
+
+    except HTTPException as e:
+        return {"ok": False, "error": e.detail}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+# --- FIN DU NOUVEL ENDPOINT ---
 
 @app.get("/db/{db_name}/search")
 def search_db(db_name: str, n: Optional[str] = None, p: Optional[str] = None):
@@ -595,23 +652,17 @@ def search_db(db_name: str, n: Optional[str] = None, p: Optional[str] = None):
         crushed_n = crush_name(n) if n else None
         crushed_p = crush_name(p) if p else None
 
-        # --- NOUVELLE LOGIQUE DE VUE ---
-        # Si un prénom (p) est fourni, OU si aucun nom (n) n'est fourni,
-        # on utilise la vue "liste".
-
         results_tree = []
         if crushed_n and not crushed_p:
             results_tree = ctx.find_by_surname_tree(crushed_n)
 
         if results_tree:
-            # Mode Arbre (ex: "Potter")
             return {
-                "ok": True,
+                "ok": True, 
                 "view_mode": "tree",
                 "results": [branch.model_dump() for branch in results_tree]
             }
         else:
-            # Mode Liste (ex: "Harry Potter" ou "Harry" ou "Potter" sans racines)
             results_list = ctx.find_by_list(crushed_n, crushed_p)
             return {
                 "ok": True, 

@@ -15,8 +15,7 @@
 <meta name="format-detection" content="telephone=no" />
 
 {% macro display_branch(person, db_name) %}
-    <li>
-        o
+    <li> o
         <strong>
             <a href="/{{ db_name }}?p={{ person.first_names|join('+') }}&n={{ person.surname }}">
                 {{ person.first_names|join(' ') }}
@@ -24,7 +23,7 @@
         </strong>
         <bdo dir="ltr">
             {% if person.birth_date or person.death_date %}
-                {{ person.birth_date or '?' }}-{{ person.death_date or '?' }}
+                {{ person.birth_date or '' }}-{{ person.death_date or '' }}
             {% endif %}
         </bdo>
         
@@ -37,7 +36,7 @@
             </strong>
             <bdo dir="ltr">
                 {% if person.spouse.birth_date or person.spouse.death_date %}
-                    {{ person.spouse.birth_date or '?' }}-{{ person.spouse.death_date or '?' }}
+                    {{ person.spouse.birth_date or '' }}-{{ person.spouse.death_date or '' }}
                 {% endif %}
             </bdo>
         {% endif %}
@@ -49,8 +48,7 @@
                 {% endfor %}
             </ul>
         {% endif %}
-    </li>
-{% endmacro %}
+    </li> {% endmacro %}
 <div class="d-flex flex-column fix_top fix_left">
 <a tabindex="1" role="button" class="btn btn-sm btn-link p-0 border-0" href="{{ url_for('search_page', db_name=db_name) }}" title="Home">
 <i class="fa fa-house fa-fw fa-sm" aria-hidden="true"></i><i class="sr-only">Home</i></a>
@@ -132,14 +130,14 @@ autofocus>
                     {% for person in results %}
                     <tr>
                         <td>
-                            <a href="/{{ db_name }}?p={{ person.first_names[0] }}&n={{ person.surname }}">
+                            <a href="/{{ db_name }}?p={{ person.first_names|join('+') }}&n={{ person.surname }}">
                                 <strong>{{ person.surname.upper() }}</strong>, {{ person.first_names|join(' ') }}
                             </a>
                         </td>
-                        <td>{{ person.birth_date or '?' }}</td>
-                        <td>{{ person.birth_place or '?' }}</td>
-                        <td>{{ person.death_date or '?' }}</td>
-                        <td>{{ person.death_place or '?' }}</td>
+                        <td>{{ person.birth_date or '' }}</td>
+                        <td>{{ person.birth_place or '' }}</td>
+                        <td>{{ person.death_date or '' }}</td>
+                        <td>{{ person.death_place or '' }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -169,13 +167,13 @@ title="English"><span class="sr-only">lang</span><span class="text-uppercase" ti
 <a role="button" class="mr-1"
 href="/{{ db_name }}?templ=templm&m=S&n={{ search_query }}"
 title="templm"><i class="fab fa-markdown" aria-hidden="true"></i><span class="sr-only">switch to templm</span></a>
-<a href="https://github.com/geneweb/geneweb/tree/2ab85d8"
+<a href="https.github.com/geneweb/geneweb/tree/2ab85d8"
 title="Line HEAD compiled on 2024-04-18 from commit 2ab85d8 (2024-04-18)">GeneWeb v. 7.1-beta</a>
 </div>
 <div class="btn-group">
 <span>&copy; <a href="https://www.inria.fr" target="_blank" rel="noreferrer, noopener">INRIA</a> 1998-2007</span>
 <a href="https://geneweb.tuxfamily.org/wiki/GeneWeb" class="ml-1"
-target="_blank" rel="noreferrer, noopener" title="Documentation GeneWeb"><i class="fab fa-wikipedia-w"></i></a><a href="https://github.com/geneweb/geneweb" class="ml-1"
+target="_blank" rel="noreferrer, noopener" title="Documentation GeneWeb"><i class="fab fa-wikipedia-w"></i></a><a href="httpsD://github.com/geneweb/geneweb" class="ml-1"
 target="_blank" rel="noreferrer, noopener" title="GeneWeb on Github"><i class="fab fa-github"></i></a>
 </div>
 </div>
