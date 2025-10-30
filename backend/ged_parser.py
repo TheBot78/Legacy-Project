@@ -88,6 +88,9 @@ def parse_ged_text(ged_text: str) -> Dict[str, List]:
     persons: List[Person] = []
     families: List[Family] = []
 
+    # Map pour accès direct aux objets Person
+    persons_by_id: Dict[int, Person] = {}
+
     # Pass 1: create Person entries
     for xref, rec in indi_records.items():
         first_names: List[str] = []
@@ -149,18 +152,21 @@ def parse_ged_text(ged_text: str) -> Dict[str, List]:
 
         pid = pid_alloc.alloc()
         person_id_by_xref[xref] = pid
-        persons.append(Person(
+        
+        person_obj = Person(
             id=pid,
             first_names=first_names or [],
             surname=surname or "",
             sex=sex,
-            father_id=None,  # set in pass 2 from families
+            father_id=None,  # set in pass 3
             mother_id=None,
             birth_date=birth_date,
             birth_place=birth_place,
             death_date=death_date,
             death_place=death_place,
-        ))
+        )
+        persons.append(person_obj)
+        persons_by_id[pid] = person_obj # Ajout au dictionnaire
 
     # Pass 2: create Family entries and link parents/children
     for xref, rec in fam_records.items():
@@ -202,6 +208,8 @@ def parse_ged_text(ged_text: str) -> Dict[str, List]:
             marriage_place=marriage_place,
         ))
 
+    # --- DEBUT DE LA CORRECTION (Passe 3) ---
+    
     # Pass 3: set father/mother based on FAMC for each person
     # We walk each family and if child's indi had FAMC equal to this family, set parents
     famc_by_child: Dict[int, str] = {}
@@ -223,13 +231,16 @@ def parse_ged_text(ged_text: str) -> Dict[str, List]:
         for child_id in fam.children_ids:
             famc_xref = famc_by_child.get(child_id)
             if famc_xref == fam_xref:
-                child = next((p for p in persons if p.id == child_id), None)
+                # Correction : Utiliser le dictionnaire pour modifier l'objet original
+                child = persons_by_id.get(child_id)
                 if child:
                     child.father_id = fam.husband_id
                     child.mother_id = fam.wife_id
 
+    # --- FIN DE LA CORRECTION ---
+    
     return {
-        "persons": persons,
+        "persons": persons, # 'persons' contient maintenant les objets mis à jour
         "families": families,
         "notes": {},
     }

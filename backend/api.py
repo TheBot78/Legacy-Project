@@ -345,7 +345,6 @@ class SearchContext:
         self.families_list: List[Dict] = []
         self.persons_by_id: Dict[int, Dict] = {}
         self.families_by_person_id: Dict[int, List[Dict]] = {} # Familles où la personne est parent
-        self.families_by_child_id: Dict[int, Dict] = {} # Famille où la personne est enfant
         self.string_table: Dict[int, str] = {}
         self.snames_list: List[str] = []
         self.fnames_list: List[str] = []
@@ -392,8 +391,15 @@ class SearchContext:
                 self.families_by_person_id.setdefault(f["husband_id"], []).append(f)
             if f.get("wife_id") is not None:
                 self.families_by_person_id.setdefault(f["wife_id"], []).append(f)
-            for child_id in f.get("children_ids", []):
-                self.families_by_child_id[child_id] = f
+
+    def _get_surname(self, person_dict: Dict) -> str:
+        """Helper pour récupérer le nom de famille, quel que soit le format."""
+        if not person_dict:
+            return ""
+        if self.is_gedcom_format:
+            surname_id = person_dict.get("surname_id")
+            return self.string_table.get(surname_id, "")
+        return person_dict.get("surname", "")
 
     def _build_person_node(self, person_id: int) -> PersonNode:
         """Construit un nœud de personne simple (sans enfants/conjoint)."""
@@ -425,10 +431,16 @@ class SearchContext:
             death_date=death_date,
         )
 
-    def _build_branch(self, person_id: int, processed_ids: set) -> Optional[PersonNode]:
+    def _build_branch(self, person_id: int, crushed_surname: str, processed_ids: set) -> Optional[PersonNode]:
         """Construit récursivement une branche à partir d'un individu."""
+        
+        # 1. Vérifications initiales
         if person_id in processed_ids:
             return None # Éviter les boucles infinies
+        
+        person_dict = self.persons_by_id.get(person_id)
+        if not person_dict:
+            return None
         
         person_node = self._build_person_node(person_id)
         if not person_node:
@@ -436,12 +448,12 @@ class SearchContext:
             
         processed_ids.add(person_id)
         
-        # Trouver les conjoints et les enfants
+        # 2. Trouver les conjoints et les enfants
         families_as_parent = self.families_by_person_id.get(person_id, [])
         
-        # Pour cet affichage, prenons la première famille trouvée
+        # Pour cet affichage, prenons la première famille trouvée (simplification)
         if families_as_parent:
-            fam = families_as_parent[0] # Simplification
+            fam = families_as_parent[0] 
             spouse_id = None
             if fam.get("husband_id") == person_id:
                 spouse_id = fam.get("wife_id")
@@ -451,10 +463,18 @@ class SearchContext:
             if spouse_id:
                 person_node.spouse = self._build_person_node(spouse_id)
             
+            # 3. Récursion sur les enfants
             for child_id in fam.get("children_ids", []):
-                child_node = self._build_branch(child_id, processed_ids)
-                if child_node:
-                    person_node.children.append(child_node)
+                child_dict = self.persons_by_id.get(child_id)
+                if not child_dict:
+                    continue
+                
+                # IMPORTANT : On ne continue la branche que si l'enfant a le MÊME nom
+                child_surname = self._get_surname(child_dict)
+                if crush_name(child_surname) == crushed_surname:
+                    child_node = self._build_branch(child_id, crushed_surname, processed_ids)
+                    if child_node:
+                        person_node.children.append(child_node)
 
         return person_node
 
@@ -510,49 +530,58 @@ class SearchContext:
     def find_by_surname_tree(self, crushed_n: str) -> List[PersonNode]:
         """Recherche le nom de famille et construit les arbres."""
         
-        # 1. Trouver tous les individus avec ce nom de famille
+        # --- DÉBUT DE LA LOGIQUE CORRIGÉE (V4) ---
+        
+        # 1. Trouver tous les IDs des personnes avec ce nom
         person_ids_with_surname = set()
-        if self.is_gedcom_format:
-            matching_surname_ids = set()
-            for i, name in enumerate(self.snames_list):
-                if crush_name(name) == crushed_n:
-                    matching_surname_ids.add(i)
-            for p in self.persons_list:
-                if p.get("surname_id") in matching_surname_ids:
-                    person_ids_with_surname.add(p["id"])
-        else:
-            for p in self.persons_list:
-                if crush_name(p.get("surname", "")) == crushed_n:
-                    person_ids_with_surname.add(p["id"])
+        for pid, p in self.persons_by_id.items():
+            surname = self._get_surname(p)
+            if crush_name(surname) == crushed_n:
+                person_ids_with_surname.add(pid)
+        
+        if not person_ids_with_surname:
+            return []
 
-        # 2. Trouver les "racines" (ceux dont les parents N'ONT PAS ce nom)
+        # 2. Déterminer les racines
         root_ids = set()
         for pid in person_ids_with_surname:
-            parent_family = self.families_by_child_id.get(pid)
-            if not parent_family:
-                root_ids.add(pid) # Pas de parents, c'est une racine
+            person_dict = self.persons_by_id.get(pid)
+            if not person_dict:
                 continue
 
-            father_id = parent_family.get("husband_id")
-            mother_id = parent_family.get("wife_id")
+            father_id = person_dict.get("father_id")
+            mother_id = person_dict.get("mother_id")
 
-            # Si les deux parents n'ont pas ce nom de famille, c'est une racine
-            if father_id not in person_ids_with_surname and mother_id not in person_ids_with_surname:
-                 root_ids.add(pid)
-            # Cas spécial : un parent l'a, l'autre n'existe pas
-            elif (father_id and father_id not in person_ids_with_surname and not mother_id):
-                 root_ids.add(pid)
-            elif (mother_id and mother_id not in person_ids_with_surname and not father_id):
-                 root_ids.add(pid)
+            # Vérifie le père
+            father_has_surname = False
+            if father_id:
+                father_dict = self.persons_by_id.get(father_id)
+                if crush_name(self._get_surname(father_dict)) == crushed_n:
+                    father_has_surname = True
+            
+            # Vérifie la mère
+            mother_has_surname = False
+            if mother_id:
+                mother_dict = self.persons_by_id.get(mother_id)
+                if crush_name(self._get_surname(mother_dict)) == crushed_n:
+                    mother_has_surname = True
+
+            # Si AUCUN parent n'a le nom, c'est une racine
+            if not father_has_surname and not mother_has_surname:
+                root_ids.add(pid)
+        
+        # --- FIN DE LA LOGIQUE CORRIGÉE (V4) ---
 
         # 3. Construire les branches à partir des racines
         branches = []
         processed_ids = set() # Pour éviter les doublons et les boucles
-        for rid in sorted(list(root_ids)):
-            branch = self._build_branch(rid, processed_ids)
-            if branch:
-                branches.append(branch)
         
+        for rid in sorted(list(root_ids)):
+            if rid not in processed_ids:
+                branch = self._build_branch(rid, crushed_n, processed_ids)
+                if branch:
+                    branches.append(branch)
+
         return branches
 
 
@@ -568,8 +597,8 @@ def search_db(db_name: str, n: Optional[str] = None, p: Optional[str] = None):
 
         # --- NOUVELLE LOGIQUE DE VUE ---
         # Si un prénom (p) est fourni, OU si aucun nom (n) n'est fourni,
-        # OU si la recherche par arbre ne renvoie rien, on utilise la vue "liste".
-        
+        # on utilise la vue "liste".
+
         results_tree = []
         if crushed_n and not crushed_p:
             results_tree = ctx.find_by_surname_tree(crushed_n)
@@ -577,7 +606,7 @@ def search_db(db_name: str, n: Optional[str] = None, p: Optional[str] = None):
         if results_tree:
             # Mode Arbre (ex: "Potter")
             return {
-                "ok": True, 
+                "ok": True,
                 "view_mode": "tree",
                 "results": [branch.model_dump() for branch in results_tree]
             }
