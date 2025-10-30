@@ -457,7 +457,9 @@ class SearchContext:
         if families_as_parent:
             fam = families_as_parent[0] 
             spouse_id = fam.get("wife_id") if fam.get("husband_id") == person_id else fam.get("husband_id")
-            if spouse_id:
+            
+            # --- CORRECTION 2 (robustesse) ---
+            if spouse_id is not None:
                 person_node.spouse = self._build_person_node(spouse_id)
             
             for child_id in fam.get("children_ids", []):
@@ -524,20 +526,26 @@ class SearchContext:
             person_dict = self.persons_by_id.get(pid)
             if not person_dict:
                 continue
+            
+            # --- CORRECTION 2 (ici) ---
             father_id = person_dict.get("father_id")
             mother_id = person_dict.get("mother_id")
+            
             father_has_surname = False
-            if father_id:
+            if father_id is not None:
                 father_dict = self.persons_by_id.get(father_id)
                 if crush_name(self._get_surname(father_dict)) == crushed_n:
                     father_has_surname = True
+            
             mother_has_surname = False
-            if mother_id:
+            if mother_id is not None:
                 mother_dict = self.persons_by_id.get(mother_id)
                 if crush_name(self._get_surname(mother_dict)) == crushed_n:
                     mother_has_surname = True
+            
             if not father_has_surname and not mother_has_surname:
                 root_ids.add(pid)
+        # --- FIN CORRECTION 2 ---
         
         branches = []
         processed_ids = set()
@@ -586,7 +594,8 @@ class SearchContext:
         father_node = None
         paternal_father_node = None
         paternal_mother_node = None
-        # --- DÉBUT DE LA CORRECTION ---
+        
+        # --- CORRECTION 1 (appliquée de la discussion précédente) ---
         if person_dict.get("father_id") is not None:
             father_id = person_dict["father_id"]
             father_node = self._build_person_node(father_id)
@@ -611,7 +620,7 @@ class SearchContext:
                     maternal_father_node = self._build_person_node(mother_dict["father_id"])
                 if mother_dict.get("mother_id") is not None:
                     maternal_mother_node = self._build_person_node(mother_dict["mother_id"])
-        # --- FIN DE LA CORRECTION ---
+        # --- FIN CORRECTION 1 ---
 
         # 4. Récupérer les familles (conjoints + enfants)
         families_data = []
