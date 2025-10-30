@@ -2,14 +2,20 @@ import os
 
 from flask import Flask, redirect, render_template, request, url_for
 
-app = Flask(__name__, static_folder="../static", template_folder="../templates")
+app = Flask(__name__, static_folder="../static",
+            template_folder="../templates")
 
 
 def check_db_exists():
-    db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../db"))
+    db_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                           "../../db"))
     if not os.path.exists(db_path):
         return False
-    files = [f for f in os.listdir(db_path) if os.path.isfile(os.path.join(db_path, f))]
+    files = []
+    for f in os.listdir(db_path):
+        file_path = os.path.join(db_path, f)
+        if os.path.isfile(file_path):
+            files.append(f)
     return len(files) > 0
 
 
@@ -23,7 +29,7 @@ def choose_genealogy():
     lang = request.args.get("lang", "fr")
     if (
         not check_db_exists()
-    ):  # If no database found, redirect to choose genealogy ottherwise main page
+    ):  # If no database found, redirect to choose genealogy
         return render_template(
             "choose_genealogy.html", lang=lang
         )  # If no DB, show choose genealogy
