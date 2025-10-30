@@ -19,7 +19,7 @@ BASES_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="GeneWeb-like Python Backend", version="0.1")
 
-# ... [Les classes d'Input et les endpoints /import, /stats, etc. restent identiques] ...
+# ... (Les classes d'Input et les endpoints /import restent identiques) ...
 class PersonInput(BaseModel):
     id: Optional[int] = None
     first_names: List[str]
@@ -308,6 +308,15 @@ def load_db_file(db_name: str, filename: str, is_json: bool = True):
     if not file_path.exists():
         file_path = BASES_DIR / f"{db_name}.gwb" / filename
         if not file_path.exists():
+             # ESSAYER de charger le .ged si le .gwb n'existe pas (cas HarryPotter)
+             file_path_ged = BASES_DIR / f"{db_name}.ged"
+             if file_path_ged.exists():
+                 # Si on charge le .ged, on ne peut pas charger un .dat
+                 if not filename.endswith(".ged"):
+                     raise HTTPException(status_code=404, detail=f"{filename} not found (only .ged exists)")
+                 content = file_path_ged.read_text(encoding="utf-8")
+                 return json.loads(content) if is_json else [content]
+             
              raise HTTPException(status_code=404, detail=f"{filename} not found for database {db_name}")
     try:
         content = file_path.read_text(encoding="utf-8")
@@ -366,7 +375,7 @@ class SearchContext:
         except Exception as e:
              raise HTTPException(status_code=500, detail=f"Error loading base.json: {str(e)}")
 
-        if not self.is_gedcom_format:
+        if not self.persons_list: # Si base.json n'a pas été trouvé ou était vide
             try:
                 self.snames_list = load_db_file(self.db_name, "snames.dat", is_json=False)
                 self.fnames_list = load_db_file(self.db_name, "fnames.dat", is_json=False)
@@ -376,13 +385,14 @@ class SearchContext:
                 self.families_list = [f.__dict__ for f in parsed["families"]]
             except Exception as e:
                  try:
+                    # Cas où seul le .ged existe (HarryPotter après suppression)
                     ged_text = (BASES_DIR / f"{self.db_name}.ged").read_text(encoding="utf-8")
-                    parsed = parse_ged_text(ged_text)
+                    parsed = parse_ged_text(ged_text) # Utilise le parser CORRIGÉ (V2)
                     self.persons_list = [p.__dict__ for p in parsed["persons"]]
                     self.families_list = [f.__dict__ for f in parsed["families"]]
-                    self.is_gedcom_format = False
-                    self.snames_list = list(set([p.get("surname", "") for p in self.persons_list]))
-                    self.fnames_list = list(set([fn for p in self.persons_list for fn in p.get("first_names", [])]))
+                    self.is_gedcom_format = False # Traiter comme GW pour les noms
+                    self.snames_list = list(set([p.get("surname", "") for p in self.persons_list if p.get("surname")]))
+                    self.fnames_list = list(set([fn for p in self.persons_list for fn in p.get("first_names", []) if fn]))
                  except Exception as e2:
                     raise HTTPException(status_code=500, detail=f"Failed to load GW/GED data: {str(e)} / {str(e2)}")
         
@@ -546,7 +556,6 @@ class SearchContext:
         
         return branches
 
-    # --- FONCTION MODIFIÉE POUR LES GRANDS-PARENTS ---
     def find_person_details(self, crushed_n: str, crushed_p: str) -> Optional[Dict]:
         """Trouve une personne et renvoie ses détails (parents, grands-parents, familles)."""
         person_id = None
@@ -577,30 +586,32 @@ class SearchContext:
         father_node = None
         paternal_father_node = None
         paternal_mother_node = None
-        if person_dict.get("father_id"):
+        # --- DÉBUT DE LA CORRECTION ---
+        if person_dict.get("father_id") is not None:
             father_id = person_dict["father_id"]
             father_node = self._build_person_node(father_id)
             # Récupérer les grands-parents paternels
             father_dict = self.persons_by_id.get(father_id)
             if father_dict:
-                if father_dict.get("father_id"):
+                if father_dict.get("father_id") is not None:
                     paternal_father_node = self._build_person_node(father_dict["father_id"])
-                if father_dict.get("mother_id"):
+                if father_dict.get("mother_id") is not None:
                     paternal_mother_node = self._build_person_node(father_dict["mother_id"])
             
         mother_node = None
         maternal_father_node = None
         maternal_mother_node = None
-        if person_dict.get("mother_id"):
+        if person_dict.get("mother_id") is not None:
             mother_id = person_dict["mother_id"]
             mother_node = self._build_person_node(mother_id)
             # Récupérer les grands-parents maternels
             mother_dict = self.persons_by_id.get(mother_id)
             if mother_dict:
-                if mother_dict.get("father_id"):
+                if mother_dict.get("father_id") is not None:
                     maternal_father_node = self._build_person_node(mother_dict["father_id"])
-                if mother_dict.get("mother_id"):
+                if mother_dict.get("mother_id") is not None:
                     maternal_mother_node = self._build_person_node(mother_dict["mother_id"])
+        # --- FIN DE LA CORRECTION ---
 
         # 4. Récupérer les familles (conjoints + enfants)
         families_data = []
@@ -608,7 +619,7 @@ class SearchContext:
         for fam in families_as_parent:
             spouse_id = fam.get("wife_id") if fam.get("husband_id") == person_id else fam.get("husband_id")
             spouse_node = None
-            if spouse_id:
+            if spouse_id is not None:
                 spouse_node = self._build_person_node(spouse_id)
                 
             children_nodes = []
@@ -633,7 +644,6 @@ class SearchContext:
             "maternal_mother": maternal_mother_node.model_dump() if maternal_mother_node else None,
             "families": families_data
         }
-    # --- FIN DE LA FONCTION MODIFIÉE ---
 
 @app.get("/db/{db_name}/person")
 def get_person_details(db_name: str, n: str, p: str):

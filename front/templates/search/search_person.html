@@ -189,7 +189,7 @@ accesskey="S" title="Search"><i class="fa fa-magnifying-glass fa-fw fa-xs" aria-
              {% macro person_cell(p) %}
                 {% if p %}
                     <a href="/{{ db_name }}?p={{ p.first_names|join('+') }}&n={{ p.surname }}">
-                        {{ p.first_names|join(' ') }} {{ p.surname.upper() }}
+                        {{ p.first_names|join(' ') }}<br><span class="text-nowrap">{{ p.surname.upper() }}</span>
                     </a>
                 {% else %}
                     ?

@@ -88,7 +88,6 @@ def parse_ged_text(ged_text: str) -> Dict[str, List]:
     persons: List[Person] = []
     families: List[Family] = []
 
-    # Map pour accès direct aux objets Person
     persons_by_id: Dict[int, Person] = {}
 
     # Pass 1: create Person entries
@@ -100,17 +99,12 @@ def parse_ged_text(ged_text: str) -> Dict[str, List]:
         birth_place: Optional[str] = None
         death_date: Optional[str] = None
         death_place: Optional[str] = None
-        father_xref: Optional[str] = None
-        mother_xref: Optional[str] = None
-        fams: List[str] = []
-        famc: Optional[str] = None
+        # ... (famc, fams etc. non utilisés ici) ...
 
         i = 0
         while i < len(rec.lines):
             level, tag, data = rec.lines[i]
             if tag == "NAME" and data:
-                # Names like "Harry /Potter/" or "Mr. /Dursley/"
-                # Extract surname between slashes, rest are first names
                 name = data.strip()
                 parts = name.split("/")
                 if len(parts) >= 2:
@@ -144,11 +138,7 @@ def parse_ged_text(ged_text: str) -> Dict[str, List]:
                         death_place = d2.strip()
                     j += 1
                 i = j - 1
-            elif tag == "FAMC" and data:
-                famc = data.strip()
-            elif tag == "FAMS" and data:
-                fams.append(data.strip())
-            i += 1
+            i += 1 # Avancer dans tous les cas
 
         pid = pid_alloc.alloc()
         person_id_by_xref[xref] = pid
@@ -158,7 +148,7 @@ def parse_ged_text(ged_text: str) -> Dict[str, List]:
             first_names=first_names or [],
             surname=surname or "",
             sex=sex,
-            father_id=None,  # set in pass 3
+            father_id=None,  # Sera défini en Passe 3
             mother_id=None,
             birth_date=birth_date,
             birth_place=birth_place,
@@ -166,9 +156,9 @@ def parse_ged_text(ged_text: str) -> Dict[str, List]:
             death_place=death_place,
         )
         persons.append(person_obj)
-        persons_by_id[pid] = person_obj # Ajout au dictionnaire
+        persons_by_id[pid] = person_obj
 
-    # Pass 2: create Family entries and link parents/children
+    # Pass 2: create Family entries
     for xref, rec in fam_records.items():
         husband_xref: Optional[str] = None
         wife_xref: Optional[str] = None
@@ -208,12 +198,7 @@ def parse_ged_text(ged_text: str) -> Dict[str, List]:
             marriage_place=marriage_place,
         ))
 
-    # --- DEBUT DE LA CORRECTION (Passe 3) ---
-    
-    # Pass 3: set father/mother based on FAMC for each person
-    # We walk each family and if child's indi had FAMC equal to this family, set parents
     famc_by_child: Dict[int, str] = {}
-    # Build reverse from indi FAMC
     for xref, rec in indi_records.items():
         child_pid = person_id_by_xref.get(xref)
         famc_xref: Optional[str] = None
@@ -231,16 +216,13 @@ def parse_ged_text(ged_text: str) -> Dict[str, List]:
         for child_id in fam.children_ids:
             famc_xref = famc_by_child.get(child_id)
             if famc_xref == fam_xref:
-                # Correction : Utiliser le dictionnaire pour modifier l'objet original
                 child = persons_by_id.get(child_id)
                 if child:
                     child.father_id = fam.husband_id
                     child.mother_id = fam.wife_id
-
-    # --- FIN DE LA CORRECTION ---
     
     return {
-        "persons": persons, # 'persons' contient maintenant les objets mis à jour
+        "persons": persons, 
         "families": families,
         "notes": {},
     }

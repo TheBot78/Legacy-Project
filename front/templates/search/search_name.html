@@ -23,7 +23,7 @@
         </strong>
         <bdo dir="ltr">
             {% if person.birth_date or person.death_date %}
-                {{ person.birth_date or '' }}-{{ person.death_date or '' }}
+                ({{ person.birth_date or '' }}-{{ person.death_date or '' }})
             {% endif %}
         </bdo>
         
@@ -36,7 +36,7 @@
             </strong>
             <bdo dir="ltr">
                 {% if person.spouse.birth_date or person.spouse.death_date %}
-                    {{ person.spouse.birth_date or '' }}-{{ person.spouse.death_date or '' }}
+                    ({{ person.spouse.birth_date or '' }}-{{ person.spouse.death_date or '' }})
                 {% endif %}
             </bdo>
         {% endif %}
@@ -171,10 +171,10 @@ title="templm"><i class="fab fa-markdown" aria-hidden="true"></i><span class="sr
 title="Line HEAD compiled on 2024-04-18 from commit 2ab85d8 (2024-04-18)">GeneWeb v. 7.1-beta</a>
 </div>
 <div class="btn-group">
-<span>&copy; <a href="https://www.inria.fr" target="_blank" rel="noreferrer, noopener">INRIA</a> 1998-2007</span>
+<span>&copy; <a href="https://www.inria.fr" target="\_blank" rel="noreferrer, noopener">INRIA</a> 1998-2007</span>
 <a href="https://geneweb.tuxfamily.org/wiki/GeneWeb" class="ml-1"
-target="_blank" rel="noreferrer, noopener" title="Documentation GeneWeb"><i class="fab fa-wikipedia-w"></i></a><a href="httpsD://github.com/geneweb/geneweb" class="ml-1"
-target="_blank" rel="noreferrer, noopener" title="GeneWeb on Github"><i class="fab fa-github"></i></a>
+target="\_blank" rel="noreferrer, noopener" title="Documentation GeneWeb"><i class="fab fa-wikipedia-w"></i></a><a href="httpsD://github.com/geneweb/geneweb" class="ml-1"
+target="\_blank" rel="noreferrer, noopener" title="GeneWeb on Github"><i class="fab fa-github"></i></a>
 </div>
 </div>
 </div>
@@ -182,10 +182,10 @@ target="_blank" rel="noreferrer, noopener" title="GeneWeb on Github"><i class="f
 <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 <script>
-$('#load_once_p_mod').one('click', function() {
+$('#load\_once\_p\_mod').one('click', function() {
 $.getScript('{{ url_for('static', filename='js/p_mod.js') }}');
 });
-$('#load_once_copylink').one('click', function() {
+$('#load\_once\_copylink').one('click', function() {
 $.getScript('{{ url_for('static', filename='js/copylink.js') }}');
 });
 </script>
