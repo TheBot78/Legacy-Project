@@ -4,17 +4,24 @@ import os
 
 app = Flask(__name__)
 
+
 def check_db_exists():
     db_path = os.path.join(os.getcwd(), "db")
     if not os.path.exists(db_path):
         return False
-    files = [f for f in os.listdir(db_path) if os.path.isfile(os.path.join(db_path, f))]
+    files = []
+    for f in os.listdir(db_path):
+        file_path = os.path.join(db_path, f)
+        if os.path.isfile(file_path):
+            files.append(f)
     return len(files) > 0
 
 
 @app.route("/")
 def home():
-    if not check_db_exists(): # If no database found, redirect to choose genealogy ottherwise main page
+    if (
+        not check_db_exists()
+    ):  # If no database found, redirect to choose genealogy
         return render_template("choose_genealogy.html")
     return render_template("main.html")
 
@@ -23,8 +30,7 @@ def home():
 def ping_rpc():
     try:
         response = requests.post(
-            "http://rpc:2316/rpc",
-            json={"method": "ping", "params": {}}
+            "http://rpc:2316/rpc", json={"method": "ping", "params": {}}
         )
         rpc_result = response.json().get("result", "Pas de résultat")
     except Exception as e:
@@ -34,13 +40,13 @@ def ping_rpc():
 
 @app.route("/geneweb")
 def geneweb():
-    lang = request.args.get('lang', 'fr')
+    lang = request.args.get("lang", "fr")
     return render_template("geneweb.html", lang=lang)
 
 
 @app.route("/welcome")
 def welcome():
-    lang = request.args.get('lang', 'fr')
+    lang = request.args.get("lang", "fr")
     return render_template("welcome.html", lang=lang)
 
 
