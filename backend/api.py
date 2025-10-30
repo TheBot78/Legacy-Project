@@ -147,7 +147,7 @@ def search_by_name(db_name: str, q: str):
         fnames = [strings[i] for i in p.get("first_name_ids", [])]
         sname = ""
         if p.get("surname_id") is not None:
-            strings[p.get("surname_id")]
+            sname = strings[p.get("surname_id")]
         full = crush_name(" ".join([*fnames, sname]).strip())
         if full == key:
             results.append(p)

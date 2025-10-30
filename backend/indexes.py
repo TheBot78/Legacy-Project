@@ -30,7 +30,8 @@ def next_prime(n: int) -> int:
 
 
 def build_strings_index(strings: List[str]) -> Dict:
-    """Build a hash-table like index mapping crushed string hash buckets to string ids.
+    """Build a hash-table like index mapping,
+    crushed string hash buckets to string ids.
     Structure similar in spirit to strings.inx.
     """
     if not strings:
@@ -49,7 +50,8 @@ def build_names_index(persons: List[Dict], strings: List[str]) -> Dict:
     - name_to_person: bucketed by crushed full name -> person ids
     - surname_ngrams: bucketed by surname n-grams -> surname string ids
     - firstname_ngrams: bucketed by first name n-grams -> first name string ids
-    persons: list of dicts with keys referencing string ids: surname_id, first_name_ids
+    persons: list of dicts with keys,
+    referencing string ids:surname_id, first_name_ids
     """
     # Full name index
     if not persons:
@@ -65,7 +67,9 @@ def build_names_index(persons: List[Dict], strings: List[str]) -> Dict:
 
     for p in persons:
         pid = p["id"]
-        sname = strings[p["surname_id"]] if p.get("surname_id") is not None else ""
+        sname = ""
+        if p.get("surname_id") is not None:
+            sname = strings[p["surname_id"]]
         fnames = [strings[i] for i in p.get("first_name_ids", [])]
         full = crush_name(" ".join([*fnames, sname]).strip())
         full_keys.append((pid, full))
@@ -83,7 +87,8 @@ def build_names_index(persons: List[Dict], strings: List[str]) -> Dict:
         slot = _stable_hash(key) % name_size
         name_buckets[slot].append(pid)
 
-    # surname_ngrams -> surname string ids (we store string ids, but we choose to store unique ids)
+    # surname_ngrams -> surname string ids
+    # (we store string ids, but we choose to store unique ids)
     # Build mapping substring -> set of string ids
     surname_set_map: Dict[str, set] = {}
     for p in persons:
