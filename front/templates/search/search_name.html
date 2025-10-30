@@ -14,6 +14,43 @@
 <body>
 <meta name="format-detection" content="telephone=no" />
 
+{% macro display_branch(person, db_name) %}
+    <li>
+        o
+        <strong>
+            <a href="/{{ db_name }}?p={{ person.first_names|join('+') }}&n={{ person.surname }}">
+                {{ person.first_names|join(' ') }}
+            </a>
+        </strong>
+        <bdo dir="ltr">
+            {% if person.birth_date or person.death_date %}
+                {{ person.birth_date or '?' }}-{{ person.death_date or '?' }}
+            {% endif %}
+        </bdo>
+        
+        {% if person.spouse %}
+            &amp;
+            <strong>
+                <a href="/{{ db_name }}?p={{ person.spouse.first_names|join('+') }}&n={{ person.spouse.surname }}">
+                    {{ person.spouse.first_names|join(' ') }} {{ person.spouse.surname.upper() }}
+                </a>
+            </strong>
+            <bdo dir="ltr">
+                {% if person.spouse.birth_date or person.spouse.death_date %}
+                    {{ person.spouse.birth_date or '?' }}-{{ person.spouse.death_date or '?' }}
+                {% endif %}
+            </bdo>
+        {% endif %}
+
+        {% if person.children %}
+            <ul>
+                {% for child in person.children %}
+                    {{ display_branch(child, db_name) }}
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </li>
+{% endmacro %}
 <div class="d-flex flex-column fix_top fix_left">
 <a tabindex="1" role="button" class="btn btn-sm btn-link p-0 border-0" href="{{ url_for('search_page', db_name=db_name) }}" title="Home">
 <i class="fa fa-house fa-fw fa-sm" aria-hidden="true"></i><i class="sr-only">Home</i></a>
@@ -29,7 +66,7 @@ title="Display a random individual"><i class="fa fa-dice-six fa-fw fa-xs" aria-h
 
 <div class="modal" id="searchmodal" role="dialog" aria-labelledby="searchpopup" aria-hidden="true">
 <div class="modal-dialog modal-lg" role="document">
-<div class="modal-content">
+<div class.modal-content">
 <div class="modal-body" id="ModalSearch">
 <form id="collapse_search" method="get" action="/{{ db_name }}">
 <input type="hidden" name="lang" value="{{ lang }}">
@@ -65,38 +102,53 @@ autofocus>
 </table>
 <br>
 
-<div id="search_results_list">
-    {% if results %}
-        <table class="table table-striped">
-            <thead class="thead-light">
-                <tr>
-                    <th>Name</th>
-                    <th>Birth Date</th>
-                    <th>Birth Place</th>
-                    <th>Death Date</th>
-                    <th>Death Place</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for person in results %}
-                <tr>
-                    <td>
-                        <a href="/{{ db_name }}?p={{ person.first_names[0] }}&n={{ person.surname }}">
-                            <strong>{{ person.surname.upper() }}</strong>, {{ person.first_names|join(' ') }}
-                        </a>
-                    </td>
-                    <td>{{ person.birth_date or '?' }}</td>
-                    <td>{{ person.birth_place or '?' }}</td>
-                    <td>{{ person.death_date or '?' }}</td>
-                    <td>{{ person.death_place or '?' }}</td>
-                </tr>
+{% if results %}
+    {% if view_mode == 'tree' %}
+        <div id="surname_by_branch">
+            <dl>
+                {% for branch in results %}
+                <dt><a href="#" rel="nofollow">{{ loop.index }}.</a></dt>
+                <dd>
+                    <ul>
+                        {{ display_branch(branch, db_name) }}
+                    </ul>
+                </dd>
                 {% endfor %}
-            </tbody>
-        </table>
+            </dl>
+        </div>
     {% else %}
-        <p>No results found for "{{ search_query }}".</p>
+        <div id="search_results_list">
+            <table class="table table-striped">
+                <thead class="thead-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Birth Date</th>
+                        <th>Birth Place</th>
+                        <th>Death Date</th>
+                        <th>Death Place</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for person in results %}
+                    <tr>
+                        <td>
+                            <a href="/{{ db_name }}?p={{ person.first_names[0] }}&n={{ person.surname }}">
+                                <strong>{{ person.surname.upper() }}</strong>, {{ person.first_names|join(' ') }}
+                            </a>
+                        </td>
+                        <td>{{ person.birth_date or '?' }}</td>
+                        <td>{{ person.birth_place or '?' }}</td>
+                        <td>{{ person.death_date or '?' }}</td>
+                        <td>{{ person.death_place or '?' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% endif %}
-</div>
+{% else %}
+    <p>No results found for "{{ search_query }}".</p>
+{% endif %}
 <div class="d-flex ml-auto justify-content-end m-2" id="copyr">
 <div class="btn-group dropup align-self-center">
 <button class="btn btn-link dropdown-toggle" type="button" id="dropdownMenu1"

@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pathlib import Path
 import json
 
@@ -320,6 +320,241 @@ def load_db_file(db_name: str, filename: str, is_json: bool = True):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to parse {filename}: {str(e)}")
 
+# --- NOUVELLE LOGIQUE DE RECHERCHE ---
+
+# Classe pour typer la structure de l'arbre
+class PersonNode(BaseModel):
+    id: int
+    surname: str
+    first_names: List[str]
+    birth_date: str = ""
+    death_date: str = ""
+    sex: Optional[str] = None
+    spouse: Optional['PersonNode'] = None
+    children: List['PersonNode'] = []
+
+# Met à jour la classe pour permettre les références circulaires
+PersonNode.model_rebuild()
+
+
+class SearchContext:
+    """Classe Helper pour stocker les données chargées pendant une recherche."""
+    def __init__(self, db_name: str):
+        self.db_name = db_name
+        self.persons_list: List[Dict] = []
+        self.families_list: List[Dict] = []
+        self.persons_by_id: Dict[int, Dict] = {}
+        self.families_by_person_id: Dict[int, List[Dict]] = {} # Familles où la personne est parent
+        self.families_by_child_id: Dict[int, Dict] = {} # Famille où la personne est enfant
+        self.string_table: Dict[int, str] = {}
+        self.snames_list: List[str] = []
+        self.fnames_list: List[str] = []
+        self.is_gedcom_format: bool = False
+        self._load_data()
+
+    def _load_data(self):
+        try:
+            base_data = load_db_file(self.db_name, "base.json", is_json=True)
+            if "strings" in base_data:
+                self.is_gedcom_format = True
+                string_list = base_data.get("strings", [])
+                for s_id, text in enumerate(string_list):
+                    self.string_table[s_id] = text
+                self.snames_list = string_list
+                self.fnames_list = string_list
+                self.persons_list = base_data.get("persons", [])
+                if not self.persons_list and base_data.get("persons_by_id"):
+                     self.persons_list = list(base_data.get("persons_by_id").values())
+                self.families_list = base_data.get("families", [])
+            
+        except HTTPException:
+            pass # Fichier non trouvé, on suppose le format GW
+        except Exception as e:
+             raise HTTPException(status_code=500, detail=f"Error loading base.json: {str(e)}")
+
+        if not self.is_gedcom_format:
+            try:
+                self.snames_list = load_db_file(self.db_name, "snames.dat", is_json=False)
+                self.fnames_list = load_db_file(self.db_name, "fnames.dat", is_json=False)
+                gw_text = (BASES_DIR / f"{self.db_name}.gw").read_text(encoding="utf-8")
+                parsed = parse_gw_text(gw_text)
+                self.persons_list = [p.__dict__ for p in parsed["persons"]]
+                self.families_list = [f.__dict__ for f in parsed["families"]]
+            except Exception as e:
+                 raise HTTPException(status_code=500, detail=f"Failed to load GW data for search: {str(e)}")
+        
+        # Créer des index pour un accès rapide
+        for p in self.persons_list:
+            self.persons_by_id[p["id"]] = p
+            
+        for f in self.families_list:
+            if f.get("husband_id") is not None:
+                self.families_by_person_id.setdefault(f["husband_id"], []).append(f)
+            if f.get("wife_id") is not None:
+                self.families_by_person_id.setdefault(f["wife_id"], []).append(f)
+            for child_id in f.get("children_ids", []):
+                self.families_by_child_id[child_id] = f
+
+    def _build_person_node(self, person_id: int) -> PersonNode:
+        """Construit un nœud de personne simple (sans enfants/conjoint)."""
+        person = self.persons_by_id.get(person_id)
+        if not person:
+            return None
+
+        if self.is_gedcom_format:
+            surname_id = person.get("surname_id")
+            firstname_ids = person.get("first_name_ids", [])
+            surname = self.string_table.get(surname_id, "?")
+            first_names = [self.string_table.get(fn_id, "?") for fn_id in firstname_ids]
+            birth_date_id = person.get("birth_date_id")
+            death_date_id = person.get("death_date_id")
+            birth_date = self.string_table.get(birth_date_id, "") if birth_date_id is not None else ""
+            death_date = self.string_table.get(death_date_id, "") if death_date_id is not None else ""
+        else:
+            surname = person.get("surname", "?")
+            first_names = person.get("first_names", ["?"])
+            birth_date = person.get("birth_date", "") or ""
+            death_date = person.get("death_date", "") or ""
+
+        return PersonNode(
+            id=person_id,
+            surname=surname,
+            first_names=first_names,
+            sex=person.get("sex"),
+            birth_date=birth_date,
+            death_date=death_date,
+        )
+
+    def _build_branch(self, person_id: int, processed_ids: set) -> Optional[PersonNode]:
+        """Construit récursivement une branche à partir d'un individu."""
+        if person_id in processed_ids:
+            return None # Éviter les boucles infinies
+        
+        person_node = self._build_person_node(person_id)
+        if not person_node:
+            return None
+            
+        processed_ids.add(person_id)
+        
+        # Trouver les conjoints et les enfants
+        families_as_parent = self.families_by_person_id.get(person_id, [])
+        
+        # Pour cet affichage, prenons la première famille trouvée
+        if families_as_parent:
+            fam = families_as_parent[0] # Simplification
+            spouse_id = None
+            if fam.get("husband_id") == person_id:
+                spouse_id = fam.get("wife_id")
+            else:
+                spouse_id = fam.get("husband_id")
+
+            if spouse_id:
+                person_node.spouse = self._build_person_node(spouse_id)
+            
+            for child_id in fam.get("children_ids", []):
+                child_node = self._build_branch(child_id, processed_ids)
+                if child_node:
+                    person_node.children.append(child_node)
+
+        return person_node
+
+    def find_by_list(self, crushed_n: str, crushed_p: str) -> List[Dict]:
+        """Recherche simple (liste)."""
+        matching_surname_ids = set()
+        matching_firstname_ids = set()
+        
+        if crushed_n:
+            for i, name in enumerate(self.snames_list):
+                if crush_name(name) == crushed_n:
+                    matching_surname_ids.add(i)
+        
+        if crushed_p:
+            for i, name in enumerate(self.fnames_list):
+                if crush_name(name) == crushed_p:
+                    matching_firstname_ids.add(i)
+
+        results = []
+        for person in self.persons_list:
+            found = False
+            
+            if self.is_gedcom_format:
+                surname_id = person.get("surname_id")
+                firstname_ids = person.get("first_name_ids", [])
+                
+                if crushed_n and surname_id not in matching_surname_ids:
+                    continue # Doit correspondre au nom si fourni
+                if crushed_p and not any(fn_id in matching_firstname_ids for fn_id in firstname_ids):
+                    continue # Doit correspondre au prénom si fourni
+                
+                # Si on arrive ici, la personne correspond
+                found = True
+
+            else: # Format GW
+                surname_str = person.get("surname", "")
+                first_names_list = person.get("first_names", [])
+
+                if crushed_n and crush_name(surname_str) != crushed_n:
+                    continue
+                if crushed_p and not any(crush_name(fn) == crushed_p for fn in first_names_list):
+                    continue
+                
+                found = True
+
+            if found:
+                node = self._build_person_node(person.get("id"))
+                if node:
+                    # Renvoyer un dict simple pour le tableau, pas un objet Pydantic
+                    results.append(node.model_dump())
+        return results
+
+    def find_by_surname_tree(self, crushed_n: str) -> List[PersonNode]:
+        """Recherche le nom de famille et construit les arbres."""
+        
+        # 1. Trouver tous les individus avec ce nom de famille
+        person_ids_with_surname = set()
+        if self.is_gedcom_format:
+            matching_surname_ids = set()
+            for i, name in enumerate(self.snames_list):
+                if crush_name(name) == crushed_n:
+                    matching_surname_ids.add(i)
+            for p in self.persons_list:
+                if p.get("surname_id") in matching_surname_ids:
+                    person_ids_with_surname.add(p["id"])
+        else:
+            for p in self.persons_list:
+                if crush_name(p.get("surname", "")) == crushed_n:
+                    person_ids_with_surname.add(p["id"])
+
+        # 2. Trouver les "racines" (ceux dont les parents N'ONT PAS ce nom)
+        root_ids = set()
+        for pid in person_ids_with_surname:
+            parent_family = self.families_by_child_id.get(pid)
+            if not parent_family:
+                root_ids.add(pid) # Pas de parents, c'est une racine
+                continue
+
+            father_id = parent_family.get("husband_id")
+            mother_id = parent_family.get("wife_id")
+
+            # Si les deux parents n'ont pas ce nom de famille, c'est une racine
+            if father_id not in person_ids_with_surname and mother_id not in person_ids_with_surname:
+                 root_ids.add(pid)
+            # Cas spécial : un parent l'a, l'autre n'existe pas
+            elif (father_id and father_id not in person_ids_with_surname and not mother_id):
+                 root_ids.add(pid)
+            elif (mother_id and mother_id not in person_ids_with_surname and not father_id):
+                 root_ids.add(pid)
+
+        # 3. Construire les branches à partir des racines
+        branches = []
+        processed_ids = set() # Pour éviter les doublons et les boucles
+        for rid in sorted(list(root_ids)):
+            branch = self._build_branch(rid, processed_ids)
+            if branch:
+                branches.append(branch)
+        
+        return branches
+
 
 @app.get("/db/{db_name}/search")
 def search_db(db_name: str, n: Optional[str] = None, p: Optional[str] = None):
@@ -327,130 +562,35 @@ def search_db(db_name: str, n: Optional[str] = None, p: Optional[str] = None):
         raise HTTPException(status_code=400, detail="Search query (n or p) is required")
 
     try:
-        base_data = None
-        snames_list = []
-        fnames_list = []
-        persons_list = []
-        string_table = {} 
-        is_gedcom_format = False
-
-        try:
-            base_data = load_db_file(db_name, "base.json", is_json=True)
-            if "strings" in base_data:
-                is_gedcom_format = True
-                string_list = base_data.get("strings", [])
-                for s_id, text in enumerate(string_list):
-                    string_table[s_id] = text
-                snames_list = string_list
-                fnames_list = string_list
-                persons_list = base_data.get("persons", [])
-                if not persons_list and base_data.get("persons_by_id"):
-                     persons_list = base_data.get("persons_by_id").values()
-            
-        except HTTPException:
-            pass # Fichier non trouvé, on suppose le format GW
-        except Exception as e:
-             return {"ok": False, "error": f"Error loading base.json: {str(e)}", "results": []}
-
-        if not is_gedcom_format:
-            try:
-                if not base_data:
-                    base_data = load_db_file(db_name, "base", is_json=True) # Fichier "base" pour galichet
-                
-                snames_list = load_db_file(db_name, "snames.dat", is_json=False)
-                fnames_list = load_db_file(db_name, "fnames.dat", is_json=False)
-                
-                # Le format GW (d'après vos fichiers) n'a pas de liste "persons"
-                # Nous devons la reconstruire en lisant le .gw brut
-                gw_text = (BASES_DIR / f"{db_name}.gw").read_text(encoding="utf-8")
-                parsed = parse_gw_text(gw_text)
-                persons_list = [p.__dict__ for p in parsed["persons"]]
-            except Exception as e:
-                 return {"ok": False, "error": f"Failed to load GW data for search: {str(e)}", "results": []}
-
-        matching_surname_ids = set()
-        matching_firstname_ids = set()
-        
+        ctx = SearchContext(db_name)
         crushed_n = crush_name(n) if n else None
         crushed_p = crush_name(p) if p else None
 
-        if n:
-            for i, name in enumerate(snames_list):
-                if crush_name(name) == crushed_n:
-                    matching_surname_ids.add(i)
+        # --- NOUVELLE LOGIQUE DE VUE ---
+        # Si un prénom (p) est fourni, OU si aucun nom (n) n'est fourni,
+        # OU si la recherche par arbre ne renvoie rien, on utilise la vue "liste".
         
-        if p:
-            for i, name in enumerate(fnames_list):
-                if crush_name(name) == crushed_p:
-                    matching_firstname_ids.add(i)
+        results_tree = []
+        if crushed_n and not crushed_p:
+            results_tree = ctx.find_by_surname_tree(crushed_n)
 
-        results = []
-        
-        for person in persons_list:
-            found = False
-            
-            if is_gedcom_format:
-                surname_id = person.get("surname_id")
-                firstname_ids = person.get("first_name_ids", [])
-                
-                if n and surname_id in matching_surname_ids:
-                    found = True
-                
-                if p and not found:
-                    if any(fn_id in matching_firstname_ids for fn_id in firstname_ids):
-                        found = True
-            
-            else:
-                surname_str = person.get("surname", "")
-                first_names_list = person.get("first_names", [])
-
-                if n and crush_name(surname_str) == crushed_n:
-                    found = True
-                
-                if p and not found:
-                    if any(crush_name(fn) == crushed_p for fn in first_names_list):
-                        found = True
-
-            if found:
-                # Reconstruire l'objet Personne avec les vrais noms
-                if is_gedcom_format:
-                    surname_id = person.get("surname_id")
-                    firstname_ids = person.get("first_name_ids", [])
-                    surname = string_table.get(surname_id, "?")
-                    first_names = [string_table.get(fn_id, "?") for fn_id in firstname_ids]
-
-                    birth_date_id = person.get("birth_date_id")
-                    death_date_id = person.get("death_date_id")
-                    birth_place_id = person.get("birth_place_id")
-                    death_place_id = person.get("death_place_id")
-
-                    birth_date = string_table.get(birth_date_id, "") if birth_date_id is not None else ""
-                    death_date = string_table.get(death_date_id, "") if death_date_id is not None else ""
-                    birth_place = string_table.get(birth_place_id, "") if birth_place_id is not None else ""
-                    death_place = string_table.get(death_place_id, "") if death_place_id is not None else ""
-                
-                else:
-                    surname = person.get("surname", "?")
-                    first_names = person.get("first_names", ["?"])
-                    birth_date = person.get("birth_date", "") or ""
-                    death_date = person.get("death_date", "") or ""
-                    birth_place = person.get("birth_place", "") or ""
-                    death_place = person.get("death_place", "") or ""
-
-                results.append({
-                    "id": person.get("id"),
-                    "surname": surname,
-                    "first_names": first_names,
-                    "sex": person.get("sex"),
-                    "birth_date": birth_date,
-                    "birth_place": birth_place,
-                    "death_date": death_date,
-                    "death_place": death_place
-                })
+        if results_tree:
+            # Mode Arbre (ex: "Potter")
+            return {
+                "ok": True, 
+                "view_mode": "tree",
+                "results": [branch.model_dump() for branch in results_tree]
+            }
+        else:
+            # Mode Liste (ex: "Harry Potter" ou "Harry" ou "Potter" sans racines)
+            results_list = ctx.find_by_list(crushed_n, crushed_p)
+            return {
+                "ok": True, 
+                "view_mode": "list",
+                "results": results_list
+            }
                 
     except HTTPException as e:
         return {"ok": False, "error": e.detail, "results": []}
     except Exception as e:
         return {"ok": False, "error": str(e), "results": []}
-
-    return {"ok": True, "results": results}

@@ -73,13 +73,14 @@ def call_backend_search(db_name, surname, firstname):
             if r.status_code == 200:
                 data = r.json()
                 if data.get("ok"):
-                    return data.get("results", []), None
+                    # MODIFIÉ : Renvoyer le dict de données complet
+                    return data, None
                 else:
-                    return [], data.get("error", "Erreur backend inconnue")
+                    return None, data.get("error", "Erreur backend inconnue")
             error = f"HTTP {r.status_code}"
         except Exception as e:
             error = str(e)
-    return [], error
+    return None, error
 
 # --- Routes de l'application ---
 
@@ -113,13 +114,18 @@ def search_page(db_name):
     n = request.args.get("n")
     p = request.args.get("p")
 
-    # --- LOGIQUE DE RECHERCHE (C'EST LA PARTIE MANQUANTE) ---
+    # --- LOGIQUE DE RECHERCHE (MODIFIÉE) ---
     if m == 'S' and (n or p):
-        search_query = n or p
-        results, error = call_backend_search(db_name, n or "", p or "")
+        search_query = n or p # Priorité au nom de famille pour le titre
+        
+        # MODIFIÉ : Gérer la nouvelle réponse de l'API
+        search_data, error = call_backend_search(db_name, n or "", p or "")
         
         if error:
              return redirect(url_for("choose_genealogy", lang=lang, error=f"Search error: {error}"))
+
+        results = search_data.get("results", [])
+        view_mode = search_data.get("view_mode", "list") # 'list' par défaut
 
         # Affiche la page de RÉSULTATS
         return render_template(
@@ -127,7 +133,8 @@ def search_page(db_name):
             lang=lang,
             db_name=db_name,
             search_query=search_query,
-            results=results
+            results=results,
+            view_mode=view_mode # Transmet le mode d'affichage au template
         )
     
     # --- Affiche la page de RECHERCHE (formulaire) ---
