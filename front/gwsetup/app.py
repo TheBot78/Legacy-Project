@@ -3,11 +3,6 @@ import requests
 from flask import Flask, render_template, request, redirect, url_for
 from path import list_dir, BASE_DIR
 
-app = Flask(
-    __name__,
-    static_folder="../static",
-    template_folder="../templates"
-)
 
 def get_backend_candidates():
     candidates = []
@@ -21,6 +16,7 @@ def get_backend_candidates():
 @app.route("/")
 def home():
     return redirect(url_for("welcome"))
+
 
 @app.route("/welcome")
 def welcome():

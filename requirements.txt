@@ -1,2 +1,16 @@
 fastapi>=0.110.0
 uvicorn[standard]>=0.29.0
+
+# linters and formatters
+flake8
+black
+isort
+
+# Testing tools mentioned in QA Strategy
+pytest
+pytest-cov
+pytest-xdist
+freezegun
+responses
+mock
+httpx

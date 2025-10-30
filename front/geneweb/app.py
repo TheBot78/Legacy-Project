@@ -2,11 +2,11 @@ import os
 import requests
 from flask import Flask, render_template, request, redirect, url_for
 
-app = Flask(
-    __name__,
-    static_folder="../static",
-    template_folder="../templates"
-)
+from flask import Flask, redirect, render_template, request, url_for
+
+app = Flask(__name__, static_folder="../static",
+            template_folder="../templates")
+
 
 # --- Fonctions Helper ---
 
@@ -59,9 +59,11 @@ def get_db_stats(db_name):
 
 # --- Routes de l'application ---
 
+
 @app.route("/")
 def home():
     return redirect(url_for("choose_genealogy"))
+
 
 @app.route("/choose_genealogy")
 def choose_genealogy():

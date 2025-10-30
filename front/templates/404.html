@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="{{ lang or 'fr' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Erreur 404 – Page non trouvée</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 40px; background: #f6f7fb; color: #333; }
+    .container { max-width: 720px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    h1 { margin: 0 0 12px; font-size: 28px; color: #e53e3e; }
+    p.lead { margin: 0 0 16px; font-size: 16px; }
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+    .links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+    .links a { display: inline-block; padding: 10px 14px; border-radius: 6px; text-decoration: none; color: #1f2937; border: 1px solid #d1d5db; background: #f9fafb; }
+    .links a:hover { background: #eef2ff; border-color: #c7d2fe; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Erreur 404</h1>
+    <p class="lead">La ressource demandée n’existe pas.</p>
+    <p>Chemin: <code>{{ path }}</code></p>
+    <div class="links">
+      <a href="/">Retour à l’accueil</a>
+      <a href="http://localhost:2315/">Start</a>
+      <a href="http://localhost:2316/welcome?lang={{ lang or 'fr' }}">Gwsetup</a>
+      <a href="http://localhost:2317/">GeneWeb</a>
+    </div>
+  </div>
+</body>
+</html>
