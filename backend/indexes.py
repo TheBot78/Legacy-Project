@@ -1,5 +1,6 @@
-from typing import Dict, List, Tuple
 import hashlib
+from typing import Dict, List, Tuple
+
 from .name_utils import crush_name, ngrams
 
 
@@ -21,6 +22,7 @@ def next_prime(n: int) -> int:
                 return False
             i += 2
         return True
+
     p = max(3, n)
     while not is_prime(p):
         p += 1

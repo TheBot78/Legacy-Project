@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -48,6 +48,7 @@ def in_memory_strings(persons: List[Person], families: List[Family]) -> Dict[str
     Returns a mapping string -> string_id.
     """
     strings: Dict[str, int] = {}
+
     def add(s: Optional[str]):
         if s is None:
             return

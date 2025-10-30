@@ -3,14 +3,17 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
+
 # Define a request model
 class RPCRequest(BaseModel):
     method: str
     params: dict
 
+
 # Define a response model
 class RPCResponse(BaseModel):
     result: str
+
 
 @app.post("/rpc", response_model=RPCResponse)
 async def rpc_endpoint(request: RPCRequest):

@@ -1,5 +1,5 @@
-import unicodedata
 import re
+import unicodedata
 from typing import List
 
 
@@ -22,4 +22,4 @@ def ngrams(s: str, n: int = 3) -> List[str]:
     s = crush_name(s)
     if len(s) < n:
         return [s]
-    return [s[i:i+n] for i in range(len(s) - n + 1)]
+    return [s[i : i + n] for i in range(len(s) - n + 1)]
