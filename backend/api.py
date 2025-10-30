@@ -19,7 +19,7 @@ BASES_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="GeneWeb-like Python Backend", version="0.1")
 
-# ... [Toutes les classes d'Input et les endpoints /import restent identiques] ...
+# ... [Les classes d'Input et les endpoints /import, /stats, etc. restent identiques] ...
 class PersonInput(BaseModel):
     id: Optional[int] = None
     first_names: List[str]
@@ -546,9 +546,9 @@ class SearchContext:
         
         return branches
 
-    # --- NOUVELLE FONCTION AJOUTÉE ---
+    # --- FONCTION MODIFIÉE POUR LES GRANDS-PARENTS ---
     def find_person_details(self, crushed_n: str, crushed_p: str) -> Optional[Dict]:
-        """Trouve une personne et renvoie ses détails (parents, familles)."""
+        """Trouve une personne et renvoie ses détails (parents, grands-parents, familles)."""
         person_id = None
         
         # 1. Trouver l'ID de la personne
@@ -560,40 +560,53 @@ class SearchContext:
             else:
                 first_names = p.get("first_names", [])
             
-            # Comparer le nom complet
             if crush_name(surname) == crushed_n and crush_name(" ".join(first_names)) == crushed_p:
                 person_id = p.get("id")
                 break
         
         if person_id is None:
-            return None # Personne non trouvée
+            return None 
 
         # 2. Construire le nœud de la personne principale
         person_node = self._build_person_node(person_id)
         if not person_node:
             return None
-            
         person_dict = self.persons_by_id.get(person_id)
 
         # 3. Récupérer les parents
         father_node = None
+        paternal_father_node = None
+        paternal_mother_node = None
         if person_dict.get("father_id"):
-            father_node = self._build_person_node(person_dict["father_id"])
+            father_id = person_dict["father_id"]
+            father_node = self._build_person_node(father_id)
+            # Récupérer les grands-parents paternels
+            father_dict = self.persons_by_id.get(father_id)
+            if father_dict:
+                if father_dict.get("father_id"):
+                    paternal_father_node = self._build_person_node(father_dict["father_id"])
+                if father_dict.get("mother_id"):
+                    paternal_mother_node = self._build_person_node(father_dict["mother_id"])
             
         mother_node = None
+        maternal_father_node = None
+        maternal_mother_node = None
         if person_dict.get("mother_id"):
-            mother_node = self._build_person_node(person_dict["mother_id"])
+            mother_id = person_dict["mother_id"]
+            mother_node = self._build_person_node(mother_id)
+            # Récupérer les grands-parents maternels
+            mother_dict = self.persons_by_id.get(mother_id)
+            if mother_dict:
+                if mother_dict.get("father_id"):
+                    maternal_father_node = self._build_person_node(mother_dict["father_id"])
+                if mother_dict.get("mother_id"):
+                    maternal_mother_node = self._build_person_node(mother_dict["mother_id"])
 
         # 4. Récupérer les familles (conjoints + enfants)
         families_data = []
         families_as_parent = self.families_by_person_id.get(person_id, [])
         for fam in families_as_parent:
-            spouse_id = None
-            if fam.get("husband_id") == person_id:
-                spouse_id = fam.get("wife_id")
-            else:
-                spouse_id = fam.get("husband_id")
-            
+            spouse_id = fam.get("wife_id") if fam.get("husband_id") == person_id else fam.get("husband_id")
             spouse_node = None
             if spouse_id:
                 spouse_node = self._build_person_node(spouse_id)
@@ -609,15 +622,19 @@ class SearchContext:
                 "children": [c.model_dump() for c in children_nodes]
             })
 
+        # 5. Renvoyer toutes les données
         return {
             "person": person_node.model_dump(),
             "father": father_node.model_dump() if father_node else None,
             "mother": mother_node.model_dump() if mother_node else None,
+            "paternal_father": paternal_father_node.model_dump() if paternal_father_node else None,
+            "paternal_mother": paternal_mother_node.model_dump() if paternal_mother_node else None,
+            "maternal_father": maternal_father_node.model_dump() if maternal_father_node else None,
+            "maternal_mother": maternal_mother_node.model_dump() if maternal_mother_node else None,
             "families": families_data
         }
-    # --- FIN DE LA NOUVELLE FONCTION ---
+    # --- FIN DE LA FONCTION MODIFIÉE ---
 
-# --- NOUVEL ENDPOINT AJOUTÉ ---
 @app.get("/db/{db_name}/person")
 def get_person_details(db_name: str, n: str, p: str):
     """Récupère les détails complets pour une seule personne."""
@@ -640,7 +657,6 @@ def get_person_details(db_name: str, n: str, p: str):
         return {"ok": False, "error": e.detail}
     except Exception as e:
         return {"ok": False, "error": str(e)}
-# --- FIN DU NOUVEL ENDPOINT ---
 
 @app.get("/db/{db_name}/search")
 def search_db(db_name: str, n: Optional[str] = None, p: Optional[str] = None):
