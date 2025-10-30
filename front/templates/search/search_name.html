@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+<title>{{ search_query }}</title>
+<meta name="robots" content="none">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon_gwd.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='images/favicon_gwd.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/css.css') }}">
+</head>
+<body>
+<meta name="format-detection" content="telephone=no" />
+
+<div class="d-flex flex-column fix_top fix_left">
+<a tabindex="1" role="button" class="btn btn-sm btn-link p-0 border-0" href="{{ url_for('search_page', db_name=db_name) }}" title="Home">
+<i class="fa fa-house fa-fw fa-sm" aria-hidden="true"></i><i class="sr-only">Home</i></a>
+<a tabindex="2" role="button" class="btn btn-sm btn-link p-0 border-0" href="{{ url_for('search_page', db_name=db_name) }}" title="Back"><i class="fa fa-arrow-left-long fa-fw fa-xs" aria-hidden="true"></i><span class="sr-only">Back</span></a>
+<a tabindex="3" role="button" class="btn btn-sm btn-link p-0 border-0" data-toggle="modal" data-target="#searchmodal"
+accesskey="S" title="Search"><i class="fa fa-magnifying-glass fa-fw fa-xs" aria-hidden="true"></i><span class="sr-only">Search</span></a>
+<a role="button" class="btn btn-sm btn-link p-0 border-0"
+href="/{{ db_name }}?i=RANDOM"
+title="Display a random individual"><i class="fa fa-dice-six fa-fw fa-xs" aria-hidden="true"></i><span class="sr-only">Display a random individual</span></a>
+<div class="btn btn-sm p-0 border-0" id="q_time"><i class="fa fa-hourglass-half fa-fw fa-xs p-0"></i></div>
+<div class="btn btn-sm p-0 border-0 d-none" id="nb_errors"><i class="fa fa-bug fa-fw fa-xs p-0"></i></div>
+</div>
+
+<div class="modal" id="searchmodal" role="dialog" aria-labelledby="searchpopup" aria-hidden="true">
+<div class="modal-dialog modal-lg" role="document">
+<div class="modal-content">
+<div class="modal-body" id="ModalSearch">
+<form id="collapse_search" method="get" action="/{{ db_name }}">
+<input type="hidden" name="lang" value="{{ lang }}">
+<input type="hidden" name="m" value="S">
+<div class="d-flex justify-content-center">
+<h5 class="rounded modal-title my-2 text-center w-50 align-self-center" id="searchpopup">Search individual</h5>
+<div class="col-8">
+<label class="sr-only" for="n_modal">Search public name</label>
+<input type="search" id="n_modal" class="form-control form-control-lg" name="n" placeholder="Surname, public name, alias"
+autofocus>
+<label class="sr-only" for="p_modal">Search firstname</label>
+<input type="search" id="p_modal" class="form-control form-control-lg mt-2" name="p" placeholder="First name">
+</div>
+<button class="btn btn-outline-primary" type="submit" title="Search"><i class="fa fa-magnifying-glass fa-lg mx-2"></i> Search</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+</div>
+
+<div class="container">
+<h1><a href="/{{ db_name }}?m=N&t=A&v={{ search_query }}">{{ search_query }}</a></h1>
+
+<table class="display_search">
+    <tr>
+        <td><b>Display by</b></td>
+        <td><img src="{{ url_for('static', filename='images/picto_branch.png') }}" alt="" title=""></td>
+        <td>line ({{ results|length }})</td>
+        <td><img src="{{ url_for('static', filename='images/picto_alphabetic_order.png') }}" alt="" title=""></td>
+        <td><a href="/{{ db_name }}?m=N&o=i&t=N&v={{ search_query }}" rel="nofollow">alphabetical order</a></td>
+    </tr>
+</table>
+<br>
+
+<div id="search_results_list">
+    {% if results %}
+        <table class="table table-striped">
+            <thead class="thead-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Birth Date</th>
+                    <th>Birth Place</th>
+                    <th>Death Date</th>
+                    <th>Death Place</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for person in results %}
+                <tr>
+                    <td>
+                        <a href="/{{ db_name }}?p={{ person.first_names[0] }}&n={{ person.surname }}">
+                            <strong>{{ person.surname.upper() }}</strong>, {{ person.first_names|join(' ') }}
+                        </a>
+                    </td>
+                    <td>{{ person.birth_date or '?' }}</td>
+                    <td>{{ person.birth_place or '?' }}</td>
+                    <td>{{ person.death_date or '?' }}</td>
+                    <td>{{ person.death_place or '?' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No results found for "{{ search_query }}".</p>
+    {% endif %}
+</div>
+<div class="d-flex ml-auto justify-content-end m-2" id="copyr">
+<div class="btn-group dropup align-self-center">
+<button class="btn btn-link dropdown-toggle" type="button" id="dropdownMenu1"
+data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+title="English"><span class="sr-only">lang</span><span class="text-uppercase" title="View in: English">en</span><span class="sr-only">, view in</span></button>
+<div class="dropdown-menu scrollable-lang short" aria-labelledby="dropdownMenu1">
+<a class="dropdown-item" href="/{{ db_name }}?lang=af&m=S&n={{ search_query }}">af</a>
+<a class="dropdown-item" href="/{{ db_name }}?lang=ar&m=S&n={{ search_query }}">ar</a>
+<a class="dropdown-item" href="/{{ db_name }}?lang=de&m=S&n={{ search_query }}">de</a>
+<a class="dropdown-item" href="/{{ db_name }}?lang=en&m=S&n={{ search_query }}">en</a>
+<a class="dropdown-item" href="/{{ db_name }}?lang=es&m=S&n={{ search_query }}">es</a>
+<a class="dropdown-item" href="/{{ db_name }}?lang=fr&m=S&n={{ search_query }}">fr</a>
+<a class="dropdown-item" href="/{{ db_name }}?lang=it&m=S&n={{ search_query }}">it</a>
+</div>
+</div>
+<div class="d-inline-flex flex-column justify-content-end align-self-center ml-3">
+<div class="ml-auto">
+<a role="button" class="mr-1"
+href="/{{ db_name }}?templ=templm&m=S&n={{ search_query }}"
+title="templm"><i class="fab fa-markdown" aria-hidden="true"></i><span class="sr-only">switch to templm</span></a>
+<a href="https://github.com/geneweb/geneweb/tree/2ab85d8"
+title="Line HEAD compiled on 2024-04-18 from commit 2ab85d8 (2024-04-18)">GeneWeb v. 7.1-beta</a>
+</div>
+<div class="btn-group">
+<span>&copy; <a href="https://www.inria.fr" target="_blank" rel="noreferrer, noopener">INRIA</a> 1998-2007</span>
+<a href="https://geneweb.tuxfamily.org/wiki/GeneWeb" class="ml-1"
+target="_blank" rel="noreferrer, noopener" title="Documentation GeneWeb"><i class="fab fa-wikipedia-w"></i></a><a href="https://github.com/geneweb/geneweb" class="ml-1"
+target="_blank" rel="noreferrer, noopener" title="GeneWeb on Github"><i class="fab fa-github"></i></a>
+</div>
+</div>
+</div>
+
+<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script>
+$('#load_once_p_mod').one('click', function() {
+$.getScript('{{ url_for('static', filename='js/p_mod.js') }}');
+});
+$('#load_once_copylink').one('click', function() {
+$.getScript('{{ url_for('static', filename='js/copylink.js') }}');
+});
+</script>
+<script>$('.modal').on('shown.bs.modal', function() {
+$(this).find('[autofocus]').focus();
+});
+</script>
+<script>
+  var q_time = 0.007;
+  var nb_errors = 0;
+  var errors_list = "\u{000A}";
+  var home_time = document.getElementById('q_time');
+  var home_errors = document.getElementById('nb_errors');
+  if (home_time != null) {
+    home_time.title = "Query treated in " + q_time + " s";
+    if (q_time < 3) {
+      home_time.classList.add("text-success");
+    } else if (q_time < 8) {
+      home_time.classList.add("text-warning");
+     } else {
+       home_time.classList.add("text-danger");
+    }
+  }
+  if (home_errors != null) {
+    if (nb_errors > 0) {
+      home_errors.title = nb_errors +" error(s)!";
+      home_errors.classList.remove("d-none");
+    }
+    if (errors_list != "") {
+      home_errors.title = home_errors.title + errors_list + ".";
+    }
+  }
+</script>
+</body>
+</html>

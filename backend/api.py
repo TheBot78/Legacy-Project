@@ -83,7 +83,6 @@ def import_database(req: ImportRequest):
         ))
 
     db_dir = write_gwb(BASES_DIR, req.db_name, persons, families, req.notes_origin_file)
-    # Écriture classique .gwb pour reproduire la structure Legacy-Project/data/*.gwb
     from .storage import write_gwb_classic, write_gw, write_gwf
     write_gwb_classic(BASES_DIR, req.db_name, persons, families)
     gw_path = write_gw(BASES_DIR, req.db_name, persons, families)
@@ -274,4 +273,55 @@ def rename_db(old_name: str, req: RenameRequest):
         return {"ok": False, "renamed": renamed, "failed": failed}
     return {"ok": True, "renamed": renamed}
 
-# end
+
+def load_db_json(db_name: str, filename: str):
+    """Helper pour charger un fichier JSON d'une base."""
+    db_dir = BASES_DIR / "json_bases" / db_name
+    file_path = db_dir / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"{filename} not found for database {db_name}")
+    try:
+        return json.loads(file_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse {filename}: {str(e)}")
+
+@app.get("/db/{db_name}/search")
+def search_db(db_name: str, n: Optional[str] = None, p: Optional[str] = None):
+    if not n and not p:
+        raise HTTPException(status_code=400, detail="Search query (n or p) is required")
+
+    try:
+        base = load_db_json(db_name, "base.json")
+        names_inx = load_db_json(db_name, "names.inx.json")
+    except HTTPException as e:
+        return {"ok": False, "error": e.detail, "results": []}
+
+    persons_by_id = base.get("persons_by_id", {})
+    surname_idx = names_inx.get("surnames", {})
+    firstname_idx = names_inx.get("firstnames", {})
+    
+    matching_ids = set()
+
+    if n:
+        crushed_n = crush_name(n)
+        # *** CORRECTION ***
+        # Itère sur les clés de l'index et compare les versions "crush"
+        for surname_key, id_list in surname_idx.items():
+            if crush_name(surname_key) == crushed_n:
+                matching_ids.update(id_list)
+    
+    if p:
+        crushed_p = crush_name(p)
+        # *** CORRECTION ***
+        # Itère sur les clés de l'index et compare les versions "crush"
+        for firstname_key, id_list in firstname_idx.items():
+            if crush_name(firstname_key) == crushed_p:
+                matching_ids.update(id_list)
+
+    results = []
+    for person_id in matching_ids:
+        person_data = persons_by_id.get(str(person_id))
+        if person_data:
+            results.append(person_data)
+
+    return {"ok": True, "results": results}

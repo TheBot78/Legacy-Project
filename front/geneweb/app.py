@@ -2,8 +2,6 @@ import os
 import requests
 from flask import Flask, render_template, request, redirect, url_for
 
-from flask import Flask, redirect, render_template, request, url_for
-
 app = Flask(__name__, static_folder="../static",
             template_folder="../templates")
 
@@ -57,6 +55,32 @@ def get_db_stats(db_name):
             error = str(e)
     return stats, error
 
+def call_backend_search(db_name, surname, firstname):
+    """Appelle le backend pour les résultats de recherche."""
+    print(f"Appel backend pour RECHERCHER {db_name} n: {surname} p: {firstname}")
+    
+    params = {"n": surname, "p": firstname}
+    
+    base_candidates = [
+        os.environ.get("BACKEND_BASE", "http://127.0.0.1:8000"),
+        "http://localhost:8000",
+        "http://host.docker.internal:8000",
+    ]
+    
+    for root in base_candidates:
+        try:
+            r = requests.get(f"{root.rstrip('/')}/db/{db_name}/search", params=params, timeout=10)
+            if r.status_code == 200:
+                data = r.json()
+                if data.get("ok"):
+                    return data.get("results", []), None
+                else:
+                    return [], data.get("error", "Erreur backend inconnue")
+            error = f"HTTP {r.status_code}"
+        except Exception as e:
+            error = str(e)
+    return [], error
+
 # --- Routes de l'application ---
 
 
@@ -85,7 +109,28 @@ def choose_genealogy():
 @app.route("/<db_name>")
 def search_page(db_name):
     lang = request.args.get("lang", "en")
+    m = request.args.get("m")
+    n = request.args.get("n")
+    p = request.args.get("p")
 
+    # --- LOGIQUE DE RECHERCHE (C'EST LA PARTIE MANQUANTE) ---
+    if m == 'S' and (n or p):
+        search_query = n or p
+        results, error = call_backend_search(db_name, n or "", p or "")
+        
+        if error:
+             return redirect(url_for("choose_genealogy", lang=lang, error=f"Search error: {error}"))
+
+        # Affiche la page de RÉSULTATS
+        return render_template(
+            "search/search_name.html",
+            lang=lang,
+            db_name=db_name,
+            search_query=search_query,
+            results=results
+        )
+    
+    # --- Affiche la page de RECHERCHE (formulaire) ---
     stats, error = get_db_stats(db_name)
 
     if error:
