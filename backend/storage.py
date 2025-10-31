@@ -121,7 +121,7 @@ def write_gwb(
         "table_size": table_size,
         "buckets": name_buckets,
     }
-    (json_dir / "names.inx.json").write_text(
+    (db_dir / "names.inx.json").write_text(
         json.dumps(names_json, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
