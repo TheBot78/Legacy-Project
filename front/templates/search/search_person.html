@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+<title>{{ person.first_names|join(' ') }} {{ person.surname.upper() }}</title>
+<meta name="robots" content="none">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon_gwd.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='images/favicon_gwd.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/css.css') }}">
+
+<style>
+    .pedigree-tree {
+        margin: 1em 0;
+        width: 100%;
+        min-width: 400px;
+        border-collapse: collapse;
+    }
+    .pedigree-tree td {
+        border: 2px solid #ccc;
+        padding: 5px;
+        text-align: center;
+        vertical-align: middle;
+        width: 25%;
+        line-height: 1.2;
+    }
+    .pedigree-tree .gen-3 { /* Grands-parents */
+        font-size: 0.8em;
+    }
+    .pedigree-tree .gen-2 { /* Parents */
+        font-size: 0.9em;
+    }
+    .pedigree-tree .gen-1 { /* Personne */
+        font-weight: bold;
+        background-color: #f4f4f4;
+    }
+    /* Lignes de connexion */
+    .pedigree-tree .gen-3 {
+        border-bottom: none;
+    }
+    .pedigree-tree .gen-2 {
+        border-top: 2px solid #ccc;
+        border-bottom: none;
+    }
+    .pedigree-tree .gen-1 {
+        border-top: 2px solid #ccc;
+    }
+    .pedigree-tree .gp-father, .pedigree-tree .p-father {
+        border-right: 1px dashed #ccc;
+    }
+    .pedigree-tree .gp-mother, .pedigree-tree .p-mother {
+        border-left: 1px dashed #ccc;
+    }
+</style>
+</head>
+<body>
+<meta name="format-detection" content="telephone=no" />
+
+<div class="d-flex flex-column fix_top fix_left">
+<a tabindex="1" role="button" class="btn btn-sm btn-link p-0 border-0" href="{{ url_for('search_page', db_name=db_name) }}" title="Home">
+<i class="fa fa-house fa-fw fa-sm" aria-hidden="true"></i><i class="sr-only">Home</i></a>
+<a tabindex="2" role="button" class="btn btn-sm btn-link p-0 border-0" href="javascript:history.back()" title="Back"><i class="fa fa-arrow-left-long fa-fw fa-xs" aria-hidden="true"></i><span class="sr-only">Back</span></a>
+<a tabindex="3" role="button" class="btn btn-sm btn-link p-0 border-0" data-toggle="modal" data-target="#searchmodal"
+accesskey="S" title="Search"><i class="fa fa-magnifying-glass fa-fw fa-xs" aria-hidden="true"></i><span class="sr-only">Search</span></a>
+</div>
+
+<div class="modal" id="searchmodal" role="dialog" aria-labelledby="searchpopup" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-body" id="ModalSearch">
+                <form id="collapse_search" method="get" action="/{{ db_name }}">
+                    <input type="hidden" name="lang" value="{{ lang }}">
+                    <input type="hidden" name="m" value="S">
+                    <div class="d-flex justify-content-center">
+                        <h5 class="rounded modal-title my-2 text-center w-50 align-self-center" id="searchpopup">Search individual</h5>
+                        <div class="col-8">
+                            <label class="sr-only" for="n_modal">Search public name</label>
+                            <input type="search" id="n_modal" class="form-control form-control-lg" name="n" placeholder="Surname, public name, alias" autofocus>
+                            <label class="sr-only" for="p_modal">Search firstname</label>
+                            <input type="search" id="p_modal" class="form-control form-control-lg mt-2" name="p" placeholder="First name">
+                        </div>
+                        <button class="btn btn-outline-primary" type="submit" title="Search"><i class="fa fa-magnifying-glass fa-lg mx-2"></i> Search</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container" id="content" tabindex="-1">
+
+    <div class="row">
+        <div class="col-lg-8">
+            <h1 class="text-xs-center text-md-left">
+                {{ person.first_names|join(' ') }}
+                <a href="/{{ db_name }}?m=S&n={{ person.surname }}">{{ person.surname.upper() }}</a>
+                <span class="font-weight-light small"> 
+                    <bdo dir=ltr>
+                        {% if person.birth_date or person.death_date %}
+                            ({{ person.birth_date or '' }}-{{ person.death_date or '' }})
+                        {% endif %}
+                    </bdo>
+                </span>
+            </h1>
+
+            <div id="parents">
+                <h2>Parents</h2>
+                <ul class="pl-4">
+                    {% if father %}
+                    <li>Father: 
+                        <a href="/{{ db_name }}?p={{ father.first_names|join('+') }}&n={{ father.surname }}">
+                            {{ father.first_names|join(' ') }} {{ father.surname.upper() }}
+                        </a>
+                        <bdo dir=ltr>
+                        {% if father.birth_date or father.death_date %}
+                            ({{ father.birth_date or '' }}-{{ father.death_date or '' }})
+                        {% endif %}
+                        </bdo>
+                    </li>
+                    {% endif %}
+                    {% if mother %}
+                    <li>Mother: 
+                        <a href="/{{ db_name }}?p={{ mother.first_names|join('+') }}&n={{ mother.surname }}">
+                            {{ mother.first_names|join(' ') }} {{ mother.surname.upper() }}
+                        </a>
+                        <bdo dir=ltr>
+                        {% if mother.birth_date or mother.death_date %}
+                            ({{ mother.birth_date or '' }}-{{ mother.death_date or '' }})
+                        {% endif %}
+                        </bdo>
+                    </li>
+                    {% endif %}
+                    {% if not father and not mother %}
+                    <li>Parents unknown.</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <h2 class="mt-2 w-100">Marriage(s) and Child(ren)</h2>
+            {% if families %}
+                {% for fam in families %}
+                <ul class="pl-4 py-0">
+                    <li style="vertical-align: middle;list-style-type: circle">
+                    {% if fam.spouse %}
+                        Married to 
+                        <a href="/{{ db_name }}?p={{ fam.spouse.first_names|join('+') }}&n={{ fam.spouse.surname }}" class="female-underline">
+                            {{ fam.spouse.first_names|join(' ') }} {{ fam.spouse.surname.upper() }}
+                        </a>
+                        <span title="" class="text-nowrap"> <bdo dir=ltr>
+                        {% if fam.spouse.birth_date or fam.spouse.death_date %}
+                            ({{ fam.spouse.birth_date or '' }}-{{ fam.spouse.death_date or '' }})
+                        {% endif %}
+                        </bdo></span>
+                    {% else %}
+                        Relationship
+                    {% endif %}
+
+                    {% if fam.children %}
+                        , with children:
+                        <ul>
+                        {% for child in fam.children %}
+                            <li style="vertical-align: middle;list-style-type: square;">
+                                <a href="/{{ db_name }}?p={{ child.first_names|join('+') }}&n={{ child.surname }}">
+                                    {{ child.first_names|join(' ') }} {{ child.surname.upper() }}
+                                </a>
+                                <bdo dir=ltr>
+                                {% if child.birth_date or child.death_date %}
+                                    ({{ child.birth_date or '' }}-{{ child.death_date or '' }})
+                                {% endif %}
+                                </bdo>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        , with no children listed.
+                    {% endif %}
+                    </li>
+                </ul>
+                {% endfor %}
+            {% else %}
+                <p>No marriages or children listed.</p>
+            {% endif %}
+
+        </div> <div class="col-4 pl-0 ml-0">
+             <h4>3-Generation Tree</h4>
+
+             {% macro person_cell(p) %}
+                {% if p %}
+                    <a href="/{{ db_name }}?p={{ p.first_names|join('+') }}&n={{ p.surname }}">
+                        {{ p.first_names|join(' ') }}<br><span class="text-nowrap">{{ p.surname.upper() }}</span>
+                    </a>
+                {% else %}
+                    ?
+                {% endif %}
+             {% endmacro %}
+
+             <table class="pedigree-tree">
+                <tr>
+                     <td class="gen-3 gp-father">{{ person_cell(paternal_father) }}</td>
+                     <td class="gen-3 gp-mother">{{ person_cell(paternal_mother) }}</td>
+                     <td class="gen-3 gp-father">{{ person_cell(maternal_father) }}</td>
+                     <td class="gen-3 gp-mother">{{ person_cell(maternal_mother) }}</td>
+                 </tr>
+                 <tr>
+                     <td colspan="2" class="gen-2 p-father">{{ person_cell(father) }}</td>
+                     <td colspan="2" class="gen-2 p-mother">{{ person_cell(mother) }}</td>
+                 </tr>
+                 <tr>
+                     <td colspan="4" class="gen-1">{{ person_cell(person) }}</td>
+                 </tr>
+             </table>
+        </div>
+        </div>
+</div>
+
+<div class="d-flex ml-auto justify-content-end m-2" id="copyr">
+    </div>
+
+<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script>
+    // ... (JS) ...
+</script>
+</body>
+</html>
