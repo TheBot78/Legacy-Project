@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="none">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon_gwsetup.png') }}">
+
+  <title>Import a <b><font color=#2f6400>GeneWeb</font></b> file
+</title>
+  <style>
+* {
+  font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol;
+}
+pre {
+  font-family: monospace;
+}
+a.j {
+  font-family: monospace;
+}
+table.setup {
+  border:1px solid;
+  border-radius:4px;
+  border-color:#5bc0de;
+}
+div.welcome {
+  width: 830px;
+  border: solid 2px #5bc0de;
+  border-radius:6px;
+  text-align: left;
+  overflow: auto;
+  margin-left: auto;
+  margin-right: auto;
+  padding:5px;">
+}
+  </style>
+  
+  <script>
+    function selectFile(filePath) {
+      // Met à jour le champ de texte visible 'fname'
+      document.getElementsByName('fname')[0].value = filePath;
+      // Met aussi à jour l'affichage du chemin courant
+      document.getElementById('currentPathDisplay').innerText = filePath;
+    }
+  </script>
+
+</head>
+
+<body >
+
+<div style="background:url('{{ url_for('static', filename='images/gwlogo.png') }}') no-repeat left top; text-align:center; height:95px; line-height:95px; color:#2f6400;">
+<h1 style="margin:0;">Import a <b><font color=#2f6400>GeneWeb</font></b> file</h1>
+</div>
+<p />
+<form method=GET action="{{ url_for('gwc') }}">
+<input type=hidden name=opt value=check>
+<input type=hidden name=lang value="{{ lang }}">
+<ul><li>
+Select the name of your <b><font color=#2f6400>GeneWeb</font></b> source
+file (ending with ".gw");
+<p>
+<table class="setup">
+<tr align=left><td>
+<ul><li>Select the source file or navigate in your foldres.
+
+<table class="setup">
+  <tr>
+    <td>
+      <pre id="currentPathDisplay" style="font-family: monospace; margin: 0; padding-bottom: 10px;">{{ sel }}</pre>
+      
+      {% if parent %}
+        <a class="j" href="{{ url_for('gwc', sel=parent, lang=lang) }}">../</a><br>
+      {% endif %}
+      
+      {% for item in items %}
+        {% if item.is_dir %}
+          <a class="j" href="{{ url_for('gwc', sel=item.path, lang=lang) }}">{{ item.name }}/</a><br>
+        {% else %}
+          <a class="j" href="#" onclick="selectFile('{{ item.path }}'); return false;">{{ item.name }}</a><br>
+        {% endif %}
+      {% endfor %}
+    </td>
+  </tr>
+</table>
+</ul>
+</td></tr>
+<tr align=left><td>
+<ul><li>or provide directly the name of the GeneWeb source file(s) relative to
+the path above.<br> If this parameter contains the '*' character, you must
+provide a unique name for created database.
+
+</ul>
+</td></tr>
+<p>
+<tr align=left><td>
+<dl><dt><dd><input name="fname" size="50" placeholder="file"></dl>
+</td></tr>
+</table>
+<span style="font-size:80%">
+<table>
+<tr><td valign="top">Note:
+</td>
+<td>../ allows you to reach the parent directory.<br> In the Windows world,
+this will be insufficient to change the drive letter (C: -> D:), but you
+can do this directly in the url in your navigator.
+
+</td></tr>
+</table>
+</span>
+<p>
+<li>
+Enter the name you want to give to your <b><font color=#2f6400>GeneWeb</font></b>
+database.
+<p>
+<table class="setup">
+<tr align=left><td>
+<input name=o size=30>
+If you write nothing, it will be deducted from the <b><font color=#2f6400>GeneWeb</font></b>
+source file.
+</td></tr>
+</table>
+<p>
+<li>
+Select the options you want:
+<p>
+<table class="setup">
+<tr align=left>
+<td><input type=checkbox name=stats value="on">   </td>
+<td>Display some statistics at the end (they will be visible in the traces).
+</td>
+</tr>
+</table>
+<p>
+<table class="setup">
+<tr align=left>
+<td><input type=checkbox name=nc value="on">   </td>
+<td>Do not check the consistency of the data.
+</td></tr>
+</table>
+<p>
+<table class="setup">
+<tr align=left>
+<td><input type=checkbox name=cg value="on">   </td>
+<td>End by the initialization of consanguinities.
+</td>
+</tr>
+</table>
+<p>
+<table class="setup">
+<tr align=left>
+<td><input type=checkbox name=f value="on">   </td>
+<td>Delete database if already existing.
+</td>
+</tr>
+</table>
+<p>
+<li>
+Then press this button:
+<input type=submit value="Ok">
+</ul>
+</form>
+</body>
+</html>
+
+<br><div id="footer"><hr><div><em><a href="https://github.com/geneweb/geneweb/"><img src="{{ url_for('static', filename='images/logo_bas.png') }}" style="border:0"></a> Version 7.1-beta Copyright &copy; 1998-2021</em></div></div></body></html>

@@ -1,77 +1,153 @@
-# Python Backend (GeneWeb-like)
-
-A small Python backend that parses GeneWeb `.gw` and GEDCOM files and writes a strict classic GeneWeb base folder (`.gwb`). It also produces API-friendly JSON files, but these are stored outside the `.gwb` directory to keep the classic layout pristine.
+# GeneWeb Project - Management Interface (gwsetup)
 
 ## Overview
-- Strict classic output: `backend/bases/{db}.gwb` contains only GeneWeb-style files.
-- JSON for API/testing: `backend/bases/json_bases/{db}/` holds `base.json`, `base.acc.json`, `names.inx.json`, `strings.inx.json`.
-- Convenience files: `backend/bases/{db}.gw` and `backend/bases/{db}.gwf` are created next to the `.gwb` folder.
 
-## Project Layout
-- `backend/api.py` FastAPI endpoints.
-- `backend/storage.py` writers for `.gwb`, `.gw`, `.gwf`, and JSON bases.
-- `backend/gw_parser.py`, `backend/ged_parser.py` parsers.
-- `backend/bases/` output directory.
-- `data/` sample inputs and example classic `.gwb` (Harry-Potter).
+This project provides a comprehensive web interface for managing GeneWeb genealogy databases. It consists of a Python (Flask) frontend that communicates with a backend API to perform database operations. The entire project is orchestrated using Docker and Docker Compose for a consistent development and deployment environment.
 
-## Strict GeneWeb Base Output
-Classic files created under `backend/bases/{db}.gwb/`:
-- `particles.txt`, `snames.dat`, `fnames.dat`
-- `snames.inx`, `fnames.inx`, `names.inx`, `names.acc`
-- `strings.inx`, `nb_persons`, `base`, `base.acc`
+## Project Context
 
-JSON base (for API/testing) is stored in `backend/bases/json_bases/{db}/`:
-- `base.json`, `base.acc.json`, `names.inx.json`, `strings.inx.json`
+This project is inspired by and intended to be a modern companion to the original GeneWeb software.
+The original GeneWeb, first developed by Daniel de Rauglaudre at INRIA (France) in the 1990s, is a powerful, open-source genealogy program. It is distinguished by its high performance, robust relationship-path calculations, and its own persistent web server (gwd), all written in OCaml.
 
-## API Endpoints
-- `POST /import_gw` → writes strict classic `.gwb`, `*.gw`, `*.gwf`, and JSON to `json_bases/{db}`.
-- `POST /import_ged` → same as above, taking GEDCOM text.
-- `GET /db/{db}/stats` → reads counts from `backend/bases/json_bases/{db}/base.json`.
+This new project provides a similar set of management tools and a modern viewing interface, built on a more common web stack (Python/Flask, Docker, and a separate backend API). It interfaces with the core `.gwb` database format by parsing `.gw` and GEDCOM files and writing a strict, classic GeneWeb base folder (`.gwb`).
 
-## Quickstart (Windows)
-1) Create venv and install deps:
+## Features
+
+### Database Import
+
+* **From GEDCOM**: Import a database from a GEDCOM file (`.ged`) using a server-side file explorer.
+* **From GeneWeb Source**: Import from a GeneWeb source file (`.gw`) using the file explorer.
+* **From Empty**: Create a new, empty database with a specified name.
+
+### Database Management
+
+* **List Databases**: View all existing databases.
+* **Rename Database**: Change the name of an existing database (frontend UI is complete; backend logic is pending).
+* **Delete Database**: Remove one or more databases, including a multi-step confirmation process (frontend UI is complete; backend logic is pending).
+
+### File Explorer
+
+A secure, server-side, read-only file browser allows users to select import files from a pre-defined Docker volume (`~/` on the host, mapped to `/host_files` in the container).
+
+## Project Structure
+
 ```
+├── backend/
+│   ├── api.py
+│   ├── storage.py
+│   ├── gw_parser.py
+│   ├── ged_parser.py
+│   ├── models.py
+│   ├── bases/
+│   │   ├── json_bases/
+│   │   │   └── {db}/
+│   │   └── {db}.gwb/
+├── data/
+│   └── Harry-Potter.ged
+├── front/
+│   ├── gwsetup/
+│   ├── geneweb/
+│   └── start/
+├── docker/
+│   ├── Dockerfile
+│   └── Dockerfile.flask
+├── docker-compose.yml
+└── run.sh
+```
+
+## Database Output
+
+* **Strict Classic Output**: `backend/bases/{db}.gwb/` contains only classic GeneWeb files.
+* **API-Friendly JSON**: `backend/bases/json_bases/{db}/` contains JSON representations used by the API.
+
+## Prerequisites
+
+* Docker
+* Docker Compose (typically included with Docker Desktop)
+
+## Getting Started (Docker)
+
+Make the script executable:
+
+```bash
+chmod +x run.sh
+```
+
+### Run All Services (Front + Back)
+
+```bash
+./run.sh
+# or
+./run.sh all
+```
+
+### Run Frontend Only
+
+```bash
+./run.sh front
+```
+
+### Run Backend Only
+
+```bash
+./run.sh back
+```
+
+### Stop All Services
+
+```bash
+./run.sh down
+```
+
+## Backend Development (Standalone)
+
+```bash
 python -m venv .venv
-.\.venv\Scripts\activate
-pip install -r requirements.txt
-```
-2) Run the API server:
-```
+source .venv/bin/activate  # macOS/Linux
+# .\.venv\Scripts\activate  on Windows
+pip install -r backend/requirements.txt
 uvicorn backend.api:app --reload
 ```
-3) Open docs:
-```
-http://127.0.0.1:8000/docs
+
+Access API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+
+Example linting:
+
+```bash
+pycodestyle --max-line-length=100 backend/api.py backend/storage.py
 ```
 
-## Import Examples
-- Import GEDCOM (Python):
-```
-from pathlib import Path
-from backend.api import GwImportGEDRequest, import_ged
-text = Path('data/Harry-Potter.ged').read_text(encoding='utf-8')
-req = GwImportGEDRequest(db_name='Harry-Potter', ged_text=text, notes_origin_file='data/Harry-Potter.ged')
-resp = import_ged(req)
-print(resp)
-```
-- Stats via HTTP:
-```
-Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/db/Harry-Potter/stats
-```
+## Service Access
 
-## Verify Output
-- Classic base: `backend/bases/Harry-Potter.gwb/` (only classic files).
-- JSON base: `backend/bases/json_bases/Harry-Potter/`.
-- Convenience: `backend/bases/Harry-Potter.gw`, `backend/bases/Harry-Potter.gwf`.
+* Start/Landing Interface: [http://localhost:2315](http://localhost:2315)
+* Management (gwsetup): [http://localhost:2316](http://localhost:2316)
+* Homepage: [http://localhost:2316/welcome](http://localhost:2316/welcome)
+* Viewing (geneweb): [http://localhost:2317](http://localhost:2317)
+* RPC Service: [http://localhost:5050](http://localhost:5050)
+* Backend API: [http://localhost:8000](http://localhost:8000)
 
-Note: The script `tmp_verify_import.py` previously checked for JSON inside the `.gwb` folder. With strict mode, it will report those JSON files as “missing” in `.gwb` by design. Check them under `backend/bases/json_bases/{db}/` or adapt the script accordingly.
+## Development Status
 
-## Development Notes
-- Lint: `pycodestyle --max-line-length=100`.
-- On PowerShell, prefer listing files explicitly instead of wildcards, e.g.:
-```
-pycodestyle --max-line-length=100 backend\api.py backend\storage.py backend\ged_parser.py backend\gw_parser.py backend\models.py backend\name_utils.py backend\indexes.py main.py
-```
+* Core management features for creating, renaming, and deleting databases are implemented on the frontend.
+* Current focus: family tree search functionality in the geneweb viewer.
+* Next steps:
+
+  * Implement backend logic for rename and delete.
+  * Build search API and frontend components.
+  * Enhance geneweb viewer with relationship path finding.
+
+## Backend API Endpoints
+
+### Current Endpoints
+
+* **GET /dbs**: Retrieve list of databases.
+* **GET /db/{db_name}/stats**: Retrieve stats for a specific database (`backend/bases/json_bases/{db}/base.json`).
+* **POST /import_ged**: Create a new database from a GEDCOM text string.
+  Payload: `{ "db_name": "...", "ged_text": "...", "notes_origin_file": "..." }`
+* **POST /import_gw**: Create a database from `.gw` source text. Payload: `{ "db_name": "...", "gw_text": "...", "notes_origin_file": "..." }`
+* **POST /db/rename**: Rename a database. Payload: `{ "old_db_name": "...", "new_db_name": "..." }`
+* **POST /db/delete**: Delete a database. Payload: `{ "db_name": "..." }`
 
 ## License
+
 No license file is included. Use at your discretion for local testing and prototyping.

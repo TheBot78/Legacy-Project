@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+<title>GeneWeb – {{ db_name }}</title>
+<meta name="robots" content="none">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- Liens CSS corrigés -->
+<link rel="icon" href="{{ url_for('static', filename='images/favicon_gwd.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='images/favicon_gwd.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/css.css') }}">
+</head>
+<body>
+<div class="container">
+<meta name="format-detection" content="telephone=no" />
+<div class="d-flex flex-column flex-md-row justify-content-lg-center mt-lg-3">
+<div class="d-none d-lg-block col-md-3 order-md-1"></div>
+<div class="col-xs-12 col-md-3 order-md-3 ml-md-2 px-0">
+<div class="d-flex flex-column">
+<div class="btn-group btn-group-xs mt-1" role="group">
+</div>
+</div>
+</div>
+<div class="bg-white my-0 order-md-2 flex-fill text-lg-center align-self-md-center">
+<!-- Image et Titre dynamiques -->
+<img src="{{ url_for('static', filename='images/gwlogo.png') }}" alt="GeneWeb" title="GeneWeb">
+<h1 class="font-weight-bolder">Family Tree {{ db_name }}</h1>
+<div class="d-flex justify-content-center">
+<!-- Stats dynamiques -->
+<span class="h2 font-weight-light">{{ stats.get('persons', 0) }} individuals</span>
+<!-- Liens dynamiques -->
+<a class="align-self-center" href="/{{ db_name }}?i=59"
+title="Display a random individual"><i class="fa-solid fa-dice ml-1 mb-2"></i></a>
+</div>
+</div>
+</div>
+<div class="d-flex justify-content-center mt-1 mt-lg-3">
+<div class="d-flex flex-column col-8">
+</div>
+</div>
+<div class="flex-row justify-content-center">
+<!-- Formulaire et liens dynamiques -->
+<form class="mt-3 mt-xl-5" method="get" action="/{{ db_name }}">
+<input type="hidden" name="lang" value="{{ lang }}">
+<input type="hidden" name="m" value="S" class="has_validation">
+<div class="d-flex justify-content-center">
+<div class="d-flex flex-column justify-content-center col-xs-11 col-md-9 col-lg-7 w-75">
+<div class="d-flex">
+<div class="btn-group-vertical mr-2">
+<a role="button" href="/{{ db_name }}?m=N&tri=A"
+title="Surnames, sort by alphabetical order"><i class="fa fa-arrow-down-a-z fa-fw"></i></a>
+<a role="button" href="/{{ db_name }}?m=N&tri=F"
+title="Frequency surnames, sort by number of individuals"><i class="fa fa-arrow-down-wide-short fa-fw"></i></a>
+</div>
+<label for="surname" class="sr-only col-form-label col-sm-2">Surname</label>
+<input type="search" id="surname" class="form-control form-control-lg"
+name="n" placeholder="Surname, public name, alias"
+title="Search surname, public name, alias" autofocus tabindex="1">
+</div>
+<div class="d-flex mt-2">
+<div class="btn-group-vertical mr-2">
+<a role="button" href="/{{ db_name }}?m=P&tri=A"
+title="First names, sort by alphabetical order"><i class="fa fa-arrow-down-a-z fa-fw"></i></a>
+<a role="button" href="/{{ db_name }}?m=P&tri=F"
+title="Frequency first names, sort by number of individuals"><i class="fa fa-arrow-down-wide-short fa-fw"></i></a>
+</div>
+<label for="firstname" class="sr-only col-form-label col-sm-2">First name·s</label>
+<input type="search" id="firstname"
+class="form-control form-control-lg border-top-0"
+name="p" placeholder="First name·s"
+title="Search first name·s" tabindex="2">
+</div>
+</div>
+<button class="btn btn-outline-primary align-self-center ml-2" type="submit">
+<i class="fa fa-magnifying-glass fa-fw fa-2x mt-1"></i><br>
+Search<br>individual
+</button>
+</div>
+</form>
+<!-- Formulaire et liens dynamiques -->
+<form class="mt-2 mt-md-3 mt-lg-4" method="get" action="/{{ db_name }}">
+<input type="hidden" name="lang" value="{{ lang }}">
+<input type="hidden" name="m" value="TT">
+<div class="d-flex justify-content-center mx-5">
+<div class="d-flex flex-column justify-content-center col-xs-9 col-md-7 col-lg-5 w-75">
+<div class="d-flex">
+<a class="mr-2 align-self-center" role="button"
+href="/{{ db_name }}?m=TT" title="All the titles"><i class="fa fa-list-ul fa-fw"></i></a>
+<label for="titles" class="sr-only col-form-label col-sm-2">Title</label>
+<input type="search" class="form-control border-top-0 border-right-0 border-left-0"
+name="t" id="titles" placeholder="Title" tabindex="3">
+</div>
+<div class="d-flex mt-2">
+<a class="mr-2 align-self-center" role="button"
+href="/{{ db_name }}?m=TT&p=*" title="All the fiefs"><i class="fa fa-list-ul fa-fw"></i></a>
+<label for="estates"
+class="sr-only col-form-label col-sm-2" >Fief</label>
+<input type="search"
+class="form-control border-top-0 border-right-0 border-left-0"
+name="p" id="estates" placeholder="Fief" tabindex="4">
+</div>
+</div>
+<button class="btn btn-outline-primary btn-sm align-self-center ml-2 px-0 py-3" type="submit"
+title="Search title/fief">
+<i class="fa fa-magnifying-glass fa-fw fa-2x mx-3"></i>
+</button>
+</div>
+</form>
+</div>
+<div class="d-flex flex-column justify-items-lg-center mt-3 mt-lg-4">
+<div class="h4 text-lg-center"><i class="fas fa-screwdriver-wrench fa-sm fa-fw text-secondary mr-1"></i>Tools</div>
+<div class="d-inline-flex justify-content-lg-center">
+<a role="button" class="btn btn-outline-primary mr-1"
+href="/{{ db_name }}?m=MOD_NOTES">Add notes</a>
+<a role="button" class="btn btn-outline-primary mr-1"
+href="/{{ db_name }}?m=STAT"><i class="far fa-chart-bar fa-fw mr-1" aria-hidden="true"></i>Statistics</a>
+<a role="button" class="btn btn-outline-primary"
+href="/{{ db_name }}?m=ANM"><i class="fa fa-cake-candles fa-fw mr-1" aria-hidden="true"></i>Anniversaries</a>
+</div>
+<div class="d-inline-flex justify-content-lg-center mt-1 mt-lg-2">
+<a role="button" class="btn btn-outline-success mr-1" 
+href="/{{ db_name }}?m=ADD_FAM"
+title="Add family (wizard)"><i class="fas fa-user-plus mr-1" aria-hidden="true"></i>Add family</a>
+<a role="button" class="btn btn-outline-primary mr-1" 
+href="/{{ db_name }}?m=PPS&bi=on&ba=on&ma=on&de=on&bu=on">
+<i class="fas fa-globe fa-fw mr-1" aria-hidden="true"></i>Places/surname</a>
+<a role="button" class="btn btn-outline-primary mr-1" 
+href="/{{ db_name }}?m=AS">
+<i class="fa fa-magnifying-glass-plus fa-fw mr-1" aria-hidden="true"></i>Advanced request</a>
+<a role="button" class="btn btn-outline-primary mr-1" 
+href="/{{ db_name }}?m=CAL">
+<i class="far fa-calendar-days fa-fw mr-1" aria-hidden="true"></i>Calendars</a>
+<a role="button" class="btn btn-outline-success mr-1" 
+href="/{{ db_name }}?m=H&v=conf">
+<i class="fas fa-gear fa-fw mr-1" aria-hidden="true"></i>Configuration</a>
+</div>
+</div>
+<div class="d-flex flex-column flex-lg-row justify-content-lg-center mt-2 mt-lg-4">
+<div class="h4 align-self-lg-center mr-lg-2">
+<i class="fas fa-book fa-sm fa-fw text-muted mr-1"></i>Books</div>
+<div class="d-inline-flex justify-content-lg-center">
+<a role="button" class="btn btn-outline-success mr-1"
+href="/{{ db_name }}?m=MOD_DATA&data=fn"
+title="Update book of first names (wizard)"><i class="fa fa-child fa-fw mr-1"></i>First names</a>
+<a role="button" class="btn btn-outline-success mr-1" 
+href="/{{ db_name }}?m=MOD_DATA&data=sn"
+title="Update book of surnames (wizard)"><i class="fa fa-signature fa-fw mr-1"></i>Surnames</a>
+<a role="button" class="btn btn-outline-success mr-1" 
+href="/{{ db_name }}?m=MOD_DATA&data=place"
+title="Update book of places (wizard)"><i class="fa fa-map-location-dot fa-fw mr-1"></i>Places</a>
+<a role="button" class="btn btn-outline-success mr-1" 
+href="/{{ db_name }}?m=MOD_DATA&data=occu"
+title="Update book of occupations (wizard)"><i class="fa fa-user-doctor fa-fw mr-1"></i>Occupations</a>
+<a role="button" class="btn btn-outline-success" 
+href="/{{ db_name }}?m=MOD_DATA&data=src"
+title="Update book of sources (wizard)"><i class="fa fa-box-archive fa-fw mr-1"></i>Sources</a>
+</div>
+</div>
+<div class="row mt-2 mt-lg-4">
+<div class="col text-lg-center">
+</div>
+</div>
+<script>
+  var q_time = 0.005;
+  var nb_errors = 0;
+  var errors_list = "\u{000A}";
+  var home_time = document.getElementById('q_time');
+  var home_errors = document.getElementById('nb_errors');
+  if (home_time != null) {
+    home_time.title = "Query treated in " + q_time + " s";
+    if (q_time < 3) {
+      home_time.classList.add("text-success");
+    } else if (q_time < 8) {
+      home_time.classList.add("text-warning");
+     } else {
+       home_time.classList.add("text-danger");
+    }
+  }
+  if (home_errors != null) {
+    if (nb_errors > 0) {
+      home_errors.title = nb_errors +" error(s)!";
+      home_errors.classList.remove("d-none");
+    }
+    if (errors_list != "") {
+      home_errors.title = home_errors.title + errors_list + ".";
+    }
+  }
+</script>
+<div class="d-flex ml-auto justify-content-end m-2" id="copyr">
+<div class="btn-group dropup align-self-center">
+<button class="btn btn-link dropdown-toggle" type="button" id="dropdownMenu1"
+data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+title="English"><span class="sr-only">lang</span><span class="text-uppercase" title="View in: English">en</span><span class="sr-only">, view in</span></button>
+<div class="dropdown-menu scrollable-lang" aria-labelledby="dropdownMenu1">
+<a class="dropdown-item" id="lang_af" href="/{{ db_name }}?lang=af" title="lang af"><code>af&nbsp;&nbsp;&nbsp; </code>Afrikaans</a>
+<a class="dropdown-item" id="lang_ar" href="/{{ db_name }}?lang=ar" title="lang ar"><code>ar&nbsp;&nbsp;&nbsp; </code>Arabic</a>
+<a class="dropdown-item" id="lang_de" href="/{{ db_name }}?lang=de" title="lang de"><code>de&nbsp;&nbsp;&nbsp; </code>German</a>
+<a class="dropdown-item" id="lang_es" href="/{{ db_name }}?lang=es" title="lang es"><code>es&nbsp;&nbsp;&nbsp; </code>Spanish</a>
+<a class="dropdown-item" id="lang_fr" href="/{{ db_name }}?lang=fr" title="lang fr"><code>fr&nbsp;&nbsp;&nbsp; </code>French</a>
+<a class="dropdown-item" id="lang_it" href="/{{ db_name }}?lang=it" title="lang it"><code>it&nbsp;&nbsp;&nbsp; </code>Italian</a>
+<!-- ... (autres langues) ... -->
+</div>
+</div>
+<div class="d-inline-flex flex-column justify-content-end align-self-center ml-3">
+<div class="ml-auto">
+<a role="button" class="mr-1"
+href="/{{ db_name }}?templ=templm"
+title="templm"><i class="fab fa-markdown" aria-hidden="true"></i><span class="sr-only">switch to templm</span></a>
+<a href="https://github.com/geneweb/geneweb/tree/2ab85d8"
+title="Line HEAD compiled on 2024-04-18 from commit 2ab85d8 (2024-04-18)">GeneWeb v. 7.1-beta</a>
+</div>
+<div class="btn-group">
+<span>&copy; <a href="https://www.inria.fr" target="_blank" rel="noreferrer, noopener">INRIA</a> 1998-2007</span>
+<a href="https://geneweb.tuxfamily.org/wiki/GeneWeb" class="ml-1"
+target="_blank" rel="noreferrer, noopener" title="Documentation GeneWeb"><i class="fab fa-wikipedia-w"></i></a><a href="https://github.com/geneweb/geneweb" class="ml-1"
+target="_blank" rel="noreferrer, noopener" title="GeneWeb on Github"><i class="fab fa-github"></i></a>
+</div>
+</div>
+</div>
+</div>
+<!-- Liens JS corrigés -->
+<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script>
+$('#load_once_p_mod').one('click', function() {
+$.getScript('{{ url_for('static', filename='js/p_mod.js') }}');
+});
+$('#load_once_copylink').one('click', function() {
+$.getScript('{{ url_for('static', filename='js/copylink.js') }}');
+});
+</script>
+<script><!-- focus on found autofocus input in opening BS modal -->
+$('.modal').on('shown.bs.modal', function() {
+$(this).find('[autofocus]').focus();
+});
+</script>
+</body>
+</html>
