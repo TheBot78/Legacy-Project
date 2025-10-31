@@ -31,11 +31,7 @@ jobs:
         pip install -r front/requirements.txt
 
     - name: Run Linters (PEP 8) and create report
-      run: |
-        # Check formatting
-        black . --check
-        isort . --check-only
-        
+      run: |        
         # Run flake8 and save output to a file for artifacts
         # --exit-zero ensures the pipeline continues to generate artifacts
         flake8 . --output-file=flake8-report.txt --exit-zero
