@@ -64,4 +64,4 @@ jobs:
       run: |
         # This step directly builds the images from your docker-compose.yml
         # to verify they build correctly without running them.
-        ./run.sh
+        docker compose build
