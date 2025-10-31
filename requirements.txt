@@ -15,3 +15,6 @@ responses
 mock
 httpx
 pytest-mock
+pytest-flask
+selenium
+webdriver-manager
