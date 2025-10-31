@@ -37,7 +37,7 @@ services:
       - ~:/host_files:ro
     environment:
       - FLASK_ENV=development
-    command: python /app/front/gwsetup/app.py
+    command: ["python", "-m", "front.gwsetup.app"]
 
   geneweb:
     build:
