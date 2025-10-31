@@ -3,10 +3,10 @@ name: Python QA Pipeline
 on:
   push:
     branches:
-      - features/unit-tests
+      - feature/unit-tests
   pull_request:
     branches:
-      - features/unit-tests
+      - feature/unit-tests
 
 jobs:
   test-and-lint:
