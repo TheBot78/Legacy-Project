@@ -132,7 +132,7 @@ def stats(db_name: str):
         base_path = BASES_DIR / f"{db_name}.gwb" / "base"
         if not base_path.exists():
             raise HTTPException(status_code=404, detail="Base not found")
-    
+
     try:
         base = json.loads(base_path.read_text(encoding="utf-8"))
         # Le fichier 'base' de galichet ne contient que les comptes
@@ -204,7 +204,7 @@ def root():
 def list_dbs():
     json_bases_dir = BASES_DIR / "json_bases"
     dbs = []
-    
+
     if json_bases_dir.exists():
         for p in sorted(json_bases_dir.iterdir()):
             if not p.is_dir():
@@ -225,7 +225,7 @@ def list_dbs():
             db_name = p.stem
             if db_name not in dbs:
                 dbs.append(db_name)
-                
+
     return sorted(list(set(dbs))) # Retourne une liste unique triée
 
 @app.delete("/db/{db_name}")
@@ -233,9 +233,9 @@ def delete_db(db_name: str):
     # Cible les deux dossiers
     json_dir = BASES_DIR / "json_bases" / db_name
     gwb_dir = BASES_DIR / f"{db_name}.gwb"
-    
+
     matches = [p for p in [json_dir, gwb_dir] if p.exists() and p.is_dir()]
-    
+
     if not matches:
         raise HTTPException(status_code=404, detail="Database not found")
 
@@ -276,7 +276,7 @@ def rename_db(old_name: str, req: RenameRequest):
 
     for src in matches:
         target = src.parent / (new_name if src.name == old_name else f"{new_name}.gwb")
-        
+
         if target.exists() and target != src:
             failed.append({"path": str(src), "error": f"Target already exists: {target}"})
             continue
@@ -316,7 +316,7 @@ def load_db_file(db_name: str, filename: str, is_json: bool = True):
                      raise HTTPException(status_code=404, detail=f"{filename} not found (only .ged exists)")
                  content = file_path_ged.read_text(encoding="utf-8")
                  return json.loads(content) if is_json else [content]
-             
+
              raise HTTPException(status_code=404, detail=f"{filename} not found for database {db_name}")
     try:
         content = file_path.read_text(encoding="utf-8")
@@ -369,9 +369,9 @@ class SearchContext:
                 if not self.persons_list and base_data.get("persons_by_id"):
                      self.persons_list = list(base_data.get("persons_by_id").values())
                 self.families_list = base_data.get("families", [])
-            
+
         except HTTPException:
-            pass 
+            pass
         except Exception as e:
              raise HTTPException(status_code=500, detail=f"Error loading base.json: {str(e)}")
 
@@ -395,10 +395,10 @@ class SearchContext:
                     self.fnames_list = list(set([fn for p in self.persons_list for fn in p.get("first_names", []) if fn]))
                  except Exception as e2:
                     raise HTTPException(status_code=500, detail=f"Failed to load GW/GED data: {str(e)} / {str(e2)}")
-        
+
         for p in self.persons_list:
             self.persons_by_id[p["id"]] = p
-            
+
         for f in self.families_list:
             if f.get("husband_id") is not None:
                 self.families_by_person_id.setdefault(f["husband_id"], []).append(f)
@@ -452,16 +452,15 @@ class SearchContext:
         if not person_node:
             return None
         processed_ids.add(person_id)
-        
+
         families_as_parent = self.families_by_person_id.get(person_id, [])
         if families_as_parent:
-            fam = families_as_parent[0] 
+            fam = families_as_parent[0]
             spouse_id = fam.get("wife_id") if fam.get("husband_id") == person_id else fam.get("husband_id")
-            
-            # --- CORRECTION 2 (robustesse) ---
+
             if spouse_id is not None:
                 person_node.spouse = self._build_person_node(spouse_id)
-            
+
             for child_id in fam.get("children_ids", []):
                 child_dict = self.persons_by_id.get(child_id)
                 if not child_dict:
@@ -476,7 +475,7 @@ class SearchContext:
     def find_by_list(self, crushed_n: str, crushed_p: str) -> List[Dict]:
         matching_surname_ids = set()
         matching_firstname_ids = set()
-        
+
         if crushed_n:
             for i, name in enumerate(self.snames_list):
                 if crush_name(name) == crushed_n:
@@ -526,27 +525,25 @@ class SearchContext:
             person_dict = self.persons_by_id.get(pid)
             if not person_dict:
                 continue
-            
-            # --- CORRECTION 2 (ici) ---
+
             father_id = person_dict.get("father_id")
             mother_id = person_dict.get("mother_id")
-            
+
             father_has_surname = False
             if father_id is not None:
                 father_dict = self.persons_by_id.get(father_id)
                 if crush_name(self._get_surname(father_dict)) == crushed_n:
                     father_has_surname = True
-            
+
             mother_has_surname = False
             if mother_id is not None:
                 mother_dict = self.persons_by_id.get(mother_id)
                 if crush_name(self._get_surname(mother_dict)) == crushed_n:
                     mother_has_surname = True
-            
+
             if not father_has_surname and not mother_has_surname:
                 root_ids.add(pid)
-        # --- FIN CORRECTION 2 ---
-        
+
         branches = []
         processed_ids = set()
         for rid in root_ids:
@@ -554,20 +551,20 @@ class SearchContext:
                 branch = self._build_branch(rid, crushed_n, processed_ids)
                 if branch:
                     branches.append(branch)
-        
+
         def sort_key(node: PersonNode):
             first_name_sort = " ".join(node.first_names)
             if any(name.lower() in ["many", "mr.", "mrs."] for name in node.first_names):
                 return f"z_{first_name_sort}"
             return f"a_{first_name_sort}"
         branches.sort(key=sort_key)
-        
+
         return branches
 
     def find_person_details(self, crushed_n: str, crushed_p: str) -> Optional[Dict]:
         """Trouve une personne et renvoie ses détails (parents, grands-parents, familles)."""
         person_id = None
-        
+
         # 1. Trouver l'ID de la personne
         for p in self.persons_list:
             surname = self._get_surname(p)
@@ -576,13 +573,13 @@ class SearchContext:
                 first_names = [self.string_table.get(fn_id, "?") for fn_id in p.get("first_name_ids", [])]
             else:
                 first_names = p.get("first_names", [])
-            
+
             if crush_name(surname) == crushed_n and crush_name(" ".join(first_names)) == crushed_p:
                 person_id = p.get("id")
                 break
-        
+
         if person_id is None:
-            return None 
+            return None
 
         # 2. Construire le nœud de la personne principale
         person_node = self._build_person_node(person_id)
@@ -594,8 +591,7 @@ class SearchContext:
         father_node = None
         paternal_father_node = None
         paternal_mother_node = None
-        
-        # --- CORRECTION 1 (appliquée de la discussion précédente) ---
+
         if person_dict.get("father_id") is not None:
             father_id = person_dict["father_id"]
             father_node = self._build_person_node(father_id)
@@ -606,7 +602,7 @@ class SearchContext:
                     paternal_father_node = self._build_person_node(father_dict["father_id"])
                 if father_dict.get("mother_id") is not None:
                     paternal_mother_node = self._build_person_node(father_dict["mother_id"])
-            
+
         mother_node = None
         maternal_father_node = None
         maternal_mother_node = None
@@ -620,7 +616,6 @@ class SearchContext:
                     maternal_father_node = self._build_person_node(mother_dict["father_id"])
                 if mother_dict.get("mother_id") is not None:
                     maternal_mother_node = self._build_person_node(mother_dict["mother_id"])
-        # --- FIN CORRECTION 1 ---
 
         # 4. Récupérer les familles (conjoints + enfants)
         families_data = []
@@ -630,13 +625,13 @@ class SearchContext:
             spouse_node = None
             if spouse_id is not None:
                 spouse_node = self._build_person_node(spouse_id)
-                
+
             children_nodes = []
             for child_id in fam.get("children_ids", []):
                 child_node = self._build_person_node(child_id)
                 if child_node:
                     children_nodes.append(child_node)
-            
+
             families_data.append({
                 "spouse": spouse_node.model_dump() if spouse_node else None,
                 "children": [c.model_dump() for c in children_nodes]
@@ -659,17 +654,17 @@ def get_person_details(db_name: str, n: str, p: str):
     """Récupère les détails complets pour une seule personne."""
     if not n or not p:
         raise HTTPException(status_code=400, detail="Surname (n) and firstname (p) are required")
-    
+
     try:
         ctx = SearchContext(db_name)
         crushed_n = crush_name(n)
         crushed_p = crush_name(p)
-        
+
         details = ctx.find_person_details(crushed_n, crushed_p)
-        
+
         if not details:
             raise HTTPException(status_code=404, detail="Person not found")
-            
+
         return {"ok": True, "details": details}
 
     except HTTPException as e:
@@ -693,18 +688,18 @@ def search_db(db_name: str, n: Optional[str] = None, p: Optional[str] = None):
 
         if results_tree:
             return {
-                "ok": True, 
+                "ok": True,
                 "view_mode": "tree",
                 "results": [branch.model_dump() for branch in results_tree]
             }
         else:
             results_list = ctx.find_by_list(crushed_n, crushed_p)
             return {
-                "ok": True, 
+                "ok": True,
                 "view_mode": "list",
                 "results": results_list
             }
-                
+
     except HTTPException as e:
         return {"ok": False, "error": e.detail, "results": []}
     except Exception as e:

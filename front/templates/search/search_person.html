@@ -90,7 +90,7 @@ accesskey="S" title="Search"><i class="fa fa-magnifying-glass fa-fw fa-xs" aria-
 </div>
 
 <div class="container" id="content" tabindex="-1">
-    
+
     <div class="row">
         <div class="col-lg-8">
             <h1 class="text-xs-center text-md-left">
@@ -156,7 +156,7 @@ accesskey="S" title="Search"><i class="fa fa-magnifying-glass fa-fw fa-xs" aria-
                     {% else %}
                         Relationship
                     {% endif %}
-                    
+
                     {% if fam.children %}
                         , with children:
                         <ul>
@@ -185,7 +185,7 @@ accesskey="S" title="Search"><i class="fa fa-magnifying-glass fa-fw fa-xs" aria-
 
         </div> <div class="col-4 pl-0 ml-0">
              <h4>3-Generation Tree</h4>
-             
+
              {% macro person_cell(p) %}
                 {% if p %}
                     <a href="/{{ db_name }}?p={{ p.first_names|join('+') }}&n={{ p.surname }}">
@@ -195,7 +195,7 @@ accesskey="S" title="Search"><i class="fa fa-magnifying-glass fa-fw fa-xs" aria-
                     ?
                 {% endif %}
              {% endmacro %}
-             
+
              <table class="pedigree-tree">
                 <tr>
                      <td class="gen-3 gp-father">{{ person_cell(paternal_father) }}</td>
