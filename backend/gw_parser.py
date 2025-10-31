@@ -75,6 +75,7 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
                 "death_place": None,
                 "father_key": None,
                 "mother_key": None,
+                "per_id": None,  # Store original per ID if available
             }
         return key
 
@@ -127,11 +128,43 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
                 # No '+' found, so no wife in this fam record (or single parent)
                 pass 
 
+            # --- PARSE CHILDREN ---
+            children_keys = []
+            
+            # Look for 'chil' keywords followed by references
+            for idx, token in enumerate(tokens):
+                if token == "chil" and idx + 1 < len(tokens):
+                    child_ref = tokens[idx + 1]
+                    if child_ref.isdigit():
+                        # This is a reference to person with per_id
+                        child_key = None
+                        for key, data in persons_map.items():
+                            if data.get("per_id") == child_ref:
+                                child_key = key
+                                break
+                        
+                        # If person doesn't exist, create a placeholder
+                        if child_key is None:
+                            child_key = f"per_{child_ref}"
+                            persons_map[child_key] = {
+                                "surname": "",
+                                "first_names": [],
+                                "birth_date": None,
+                                "birth_place": None,
+                                "death_date": None,
+                                "death_place": None,
+                                "father_key": None,
+                                "mother_key": None,
+                                "per_id": child_ref,
+                            }
+                        
+                        children_keys.append(child_key)
+            
             # Initialize current family raw record
             fam_rec = {
                 "husband_key": husband_key,
                 "wife_key": wife_key,
-                "children_keys": [],
+                "children_keys": children_keys,
                 "marriage_date": None,
                 "marriage_place": None,
             }
@@ -302,15 +335,149 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
                 i += 1
             continue
 
+        # per line: 'per <id> <First_Names> /<Surname>/ <sex> [birth_info] [death_info] [parent_info]'
+        if line.startswith("per "):
+            ptoks = line.split()
+            if len(ptoks) < 4:
+                i += 1
+                continue
+            
+            # Extract person ID
+            person_id = ptoks[1]
+            
+            # Find surname in /.../ format
+            surname_start = -1
+            surname_end = -1
+            for idx, tok in enumerate(ptoks):
+                if tok.startswith('/') and tok.endswith('/'):
+                    surname_start = idx
+                    surname_end = idx
+                    break
+                elif tok.startswith('/'):
+                    surname_start = idx
+                elif tok.endswith('/') and surname_start != -1:
+                    surname_end = idx
+                    break
+            
+            if surname_start == -1:
+                i += 1
+                continue
+            
+            # Extract first names (between person_id and surname)
+            first_names = []
+            for idx in range(2, surname_start):
+                if idx < len(ptoks):
+                    first_names.append(ptoks[idx])
+            
+            # Extract surname
+            if surname_start == surname_end:
+                surname = ptoks[surname_start][1:-1]  # Remove / /
+            else:
+                surname_parts = []
+                for idx in range(surname_start, surname_end + 1):
+                    if idx < len(ptoks):
+                        part = ptoks[idx]
+                        if idx == surname_start:
+                            part = part[1:]  # Remove leading /
+                        if idx == surname_end:
+                            part = part[:-1]  # Remove trailing /
+                        surname_parts.append(part)
+                surname = " ".join(surname_parts)
+            
+            # Create person
+            pkey = ensure_person(surname, first_names)
+            
+            # Store the original per ID
+            persons_map[pkey]["per_id"] = person_id
+            
+            # Extract sex (token after surname)
+            sex_idx = surname_end + 1
+            if sex_idx < len(ptoks):
+                sex = ptoks[sex_idx]
+                if sex in {'m', 'f', 'M', 'F'}:
+                    sex_map[pkey] = sex.upper()
+            
+            # Parse remaining tokens for birth/death/parent info
+            idx = sex_idx + 1
+            while idx < len(ptoks):
+                tok = ptoks[idx]
+                
+                # Birth date
+                if _looks_date(tok):
+                    persons_map[pkey]["birth_date"] = _clean_token(tok)
+                    idx += 1
+                    # Check for 'in' keyword followed by place
+                    if idx < len(ptoks) and ptoks[idx] == "in":
+                        idx += 1
+                        place_parts = []
+                        while idx < len(ptoks) and not ptoks[idx].startswith('+') and ptoks[idx] not in {'fath', 'moth'}:
+                            place_parts.append(ptoks[idx])
+                            idx += 1
+                        if place_parts:
+                            persons_map[pkey]["birth_place"] = _normalize_place(" ".join(place_parts))
+                    continue
+                
+                # Death date (starts with +)
+                elif tok.startswith('+'):
+                    death_date = tok[1:]  # Remove +
+                    persons_map[pkey]["death_date"] = _clean_token(death_date)
+                    idx += 1
+                    # Check for 'in' keyword followed by place
+                    if idx < len(ptoks) and ptoks[idx] == "in":
+                        idx += 1
+                        place_parts = []
+                        while idx < len(ptoks) and ptoks[idx] not in {'fath', 'moth'}:
+                            place_parts.append(ptoks[idx])
+                            idx += 1
+                        if place_parts:
+                            persons_map[pkey]["death_place"] = _normalize_place(" ".join(place_parts))
+                    continue
+                
+                # Father reference
+                elif tok == "fath":
+                    idx += 1
+                    if idx < len(ptoks):
+                        father_id = ptoks[idx]
+                        # For now, store as string - will be resolved later
+                        persons_map[pkey]["father_key"] = f"per_{father_id}"
+                        idx += 1
+                    continue
+                
+                # Mother reference
+                elif tok == "moth":
+                    idx += 1
+                    if idx < len(ptoks):
+                        mother_id = ptoks[idx]
+                        # For now, store as string - will be resolved later
+                        persons_map[pkey]["mother_key"] = f"per_{mother_id}"
+                        idx += 1
+                    continue
+                
+                else:
+                    idx += 1
+            
+            i += 1
+            continue
+
         # skip other lines
         i += 1
 
+    # Create mapping from per_id to person key for resolving parent references
+    per_id_to_key: Dict[str, str] = {}
+    for key, data in persons_map.items():
+        if data.get("per_id"):
+            per_id_to_key[data["per_id"]] = key
+    
     # Assign ids and build Person/Family objects
-    alloc = IdAllocator()
+    alloc = IdAllocator(start=1)  # Start IDs from 1 to match test expectations
     key_to_id: Dict[str, int] = {}
     persons_out: List[Person] = []
     for key, data in persons_map.items():
-        pid = alloc.alloc()
+        # Use per_id if available, otherwise allocate sequentially
+        if data.get("per_id") and data["per_id"].isdigit():
+            pid = int(data["per_id"])
+        else:
+            pid = alloc.alloc()
         key_to_id[key] = pid
         # Determine sex
         sex = sex_map.get(key)
@@ -331,7 +498,7 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
     persons_by_key = {pkey: p for pkey, p in zip(key_to_id.keys(), persons_out)}
 
     families_out: List[Family] = []
-    f_alloc = IdAllocator()
+    f_alloc = IdAllocator(start=1)  # Start family IDs from 1 to match test expectations
     for fr in families_raw:
         hid = key_to_id.get(fr["husband_key"]) if fr["husband_key"] else None
         wid = key_to_id.get(fr["wife_key"]) if fr["wife_key"] else None

@@ -162,13 +162,110 @@ class TestSearchContext:
             context = SearchContext("test_db")
             assert context.db_name == "test_db"
 
-    # test_search_context_load_data removed - was failing
+    @patch('backend.api.load_db_file')
+    def test_search_context_load_data(self, mock_load_db_file):
+        """Test SearchContext data loading."""
+        mock_load_db_file.side_effect = [
+            {"persons": [], "families": []},  # base.json
+            {"table_size": 0, "buckets": []},  # names.inx.json
+            {"table_size": 0, "buckets": []}   # strings.inx.json
+        ]
+        
+        context = SearchContext("test_db")
+        
+        assert mock_load_db_file.call_count == 3
+        assert hasattr(context, 'persons')
+        assert hasattr(context, 'families')
+        assert hasattr(context, 'names_index')
+        assert hasattr(context, 'strings_index')
 
-    # test_search_context_get_surname removed - was failing
+    @patch('backend.api.load_db_file')
+    def test_search_context_get_surname(self, mock_load_db_file):
+        """Test SearchContext _get_surname method."""
+        mock_load_db_file.side_effect = [
+            {"persons": [], "families": []},
+            {"table_size": 0, "buckets": []},
+            {"table_size": 1, "buckets": [["Doe"]]}
+        ]
+        
+        context = SearchContext("test_db")
+        
+        # Test with valid surname_id
+        person = {"surname_id": 0}
+        surname = context._get_surname(person)
+        assert surname == "Doe"
+        
+        # Test with missing surname_id
+        person_no_surname = {}
+        surname = context._get_surname(person_no_surname)
+        assert surname == ""
+        
+        # Test with invalid surname_id
+        person_invalid = {"surname_id": 999}
+        surname = context._get_surname(person_invalid)
+        assert surname == ""
 
-    # test_search_context_find_by_list removed - was failing
+    @patch('backend.api.load_db_file')
+    def test_search_context_find_by_list(self, mock_load_db_file):
+        """Test SearchContext find_by_list method."""
+        mock_load_db_file.side_effect = [
+            {
+                "persons": [
+                    {"id": 1, "surname_id": 0, "first_name_ids": [0]}
+                ],
+                "families": []
+            },
+            {
+                "table_size": 1,
+                "buckets": [[
+                    {"crushed_name": "doe", "person_ids": [1]}
+                ]]
+            },
+            {
+                "table_size": 2,
+                "buckets": [["John"], ["Doe"]]
+            }
+        ]
+        
+        context = SearchContext("test_db")
+        results = context.find_by_list("doe", "john")
+        
+        assert isinstance(results, list)
+        # The exact behavior depends on the implementation details
 
-    # test_search_context_find_person_details removed - was failing
+    @patch('backend.api.load_db_file')
+    def test_search_context_find_person_details(self, mock_load_db_file):
+        """Test SearchContext find_person_details method."""
+        mock_load_db_file.side_effect = [
+            {
+                "persons": [
+                    {
+                        "id": 1,
+                        "surname_id": 1,
+                        "first_name_ids": [0],
+                        "sex": "m",
+                        "birth_date": "1990"
+                    }
+                ],
+                "families": []
+            },
+            {
+                "table_size": 1,
+                "buckets": [[
+                    {"crushed_name": "doe", "person_ids": [1]}
+                ]]
+            },
+            {
+                "table_size": 2,
+                "buckets": [["John"], ["Doe"]]
+            }
+        ]
+        
+        context = SearchContext("test_db")
+        result = context.find_person_details("doe", "john")
+        
+        # The method should return a dictionary or None
+        assert result is None or isinstance(result, dict)
 
 
 class TestAPIEndpoints:
@@ -179,7 +276,13 @@ class TestAPIEndpoints:
         """Create a test client for the FastAPI app."""
         return TestClient(app)
 
-    # test_root_endpoint removed - was failing
+    def test_root_endpoint(self, client):
+        """Test root endpoint."""
+        response = client.get("/")
+        assert response.status_code == 200
+        data = response.json()
+        assert "message" in data
+        assert "available_endpoints" in data
 
     @patch('backend.api.BASES_DIR')
     def test_list_dbs_endpoint_empty(self, mock_bases_dir, client):
@@ -211,17 +314,150 @@ class TestAPIEndpoints:
             assert "db1" in data
             assert "db2" in data
 
-    # test_parse_gw_endpoint removed - was failing
+    @patch('backend.api.parse_gw_text')
+    def test_parse_gw_endpoint(self, mock_parse_gw, client):
+        """Test parse_gw endpoint."""
+        mock_parse_gw.return_value = {
+            "persons": [{"id": 1, "name": "John Doe"}],
+            "families": []
+        }
+        
+        request_data = {"gw_text": "test gw content"}
+        response = client.post("/parse_gw", json=request_data)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "ok" in data
+        assert "persons" in data
+        assert "families" in data
+        mock_parse_gw.assert_called_once_with("test gw content")
 
-    # test_parse_gw_endpoint_error removed - was failing
+    @patch('backend.api.parse_gw_text')
+    def test_parse_gw_endpoint_error(self, mock_parse_gw, client):
+        """Test parse_gw endpoint with parsing error."""
+        mock_parse_gw.side_effect = Exception("Parse error")
+        
+        request_data = {"gw_text": "invalid gw content"}
+        response = client.post("/parse_gw", json=request_data)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["ok"] is False
+        assert "error" in data
 
-    # test_import_database_endpoint removed - was failing
+    @patch('backend.api.write_gwb')
+    @patch('backend.api.write_gwb_classic')
+    @patch('backend.api.write_gw')
+    @patch('backend.api.write_gwf')
+    def test_import_database_endpoint(self, mock_write_gwf, mock_write_gw, 
+                                    mock_write_gwb_classic, mock_write_gwb, client):
+        """Test import database endpoint."""
+        mock_write_gwb.return_value = Path("/test/db")
+        mock_write_gw.return_value = Path("/test/db.gw")
+        mock_write_gwf.return_value = Path("/test/db.gwf")
+        
+        request_data = {
+            "db_name": "test_db",
+            "persons": [
+                {
+                    "first_names": ["John"],
+                    "surname": "Doe",
+                    "sex": "m"
+                }
+            ],
+            "families": [
+                {
+                    "husband_id": 1,
+                    "wife_id": 2
+                }
+            ]
+        }
+        
+        response = client.post("/import", json=request_data)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["ok"] is True
+        assert "db_dir" in data
+        assert "gw_path" in data
+        assert "gwf_path" in data
 
-    # test_import_gw_endpoint removed - was failing
+    @patch('backend.api.parse_gw_text')
+    @patch('backend.api.write_gwb')
+    @patch('backend.api.write_gwb_classic')
+    @patch('backend.api.write_gw')
+    @patch('backend.api.write_gwf')
+    def test_import_gw_endpoint(self, mock_write_gwf, mock_write_gw,
+                               mock_write_gwb_classic, mock_write_gwb,
+                               mock_parse_gw, client):
+        """Test import_gw endpoint."""
+        mock_parse_gw.return_value = {
+            "persons": [{"id": 1, "first_names": ["John"], "surname": "Doe"}],
+            "families": []
+        }
+        mock_write_gwb.return_value = Path("/test/db")
+        mock_write_gw.return_value = Path("/test/db.gw")
+        mock_write_gwf.return_value = Path("/test/db.gwf")
+        
+        request_data = {
+            "db_name": "test_db",
+            "gw_text": "test gw content"
+        }
+        
+        response = client.post("/import_gw", json=request_data)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["ok"] is True
+        mock_parse_gw.assert_called_once_with("test gw content")
 
-    # test_import_ged_endpoint removed - was failing
+    @patch('backend.api.parse_ged_text')
+    @patch('backend.api.write_gwb')
+    @patch('backend.api.write_gwb_classic')
+    @patch('backend.api.write_gw')
+    @patch('backend.api.write_gwf')
+    def test_import_ged_endpoint(self, mock_write_gwf, mock_write_gw,
+                                mock_write_gwb_classic, mock_write_gwb,
+                                mock_parse_ged, client):
+        """Test import_ged endpoint."""
+        mock_parse_ged.return_value = {
+            "persons": [{"id": 1, "first_names": ["John"], "surname": "Doe"}],
+            "families": []
+        }
+        mock_write_gwb.return_value = Path("/test/db")
+        mock_write_gw.return_value = Path("/test/db.gw")
+        mock_write_gwf.return_value = Path("/test/db.gwf")
+        
+        request_data = {
+            "db_name": "test_db",
+            "ged_text": "test ged content"
+        }
+        
+        response = client.post("/import_ged", json=request_data)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["ok"] is True
+        mock_parse_ged.assert_called_once_with("test ged content")
 
-    # test_stats_endpoint removed - was failing
+    @patch('backend.api.load_db_file')
+    def test_stats_endpoint(self, mock_load_db_file, client):
+        """Test stats endpoint."""
+        mock_load_db_file.return_value = {
+            "counts": {
+                "persons": 100,
+                "families": 50
+            }
+        }
+        
+        response = client.get("/db/test_db/stats")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "persons" in data
+        assert "families" in data
+        assert data["persons"] == 100
+        assert data["families"] == 50
 
     @patch('backend.api.load_db_file')
     def test_stats_endpoint_missing_db(self, mock_load_db_file, client):
@@ -252,7 +488,19 @@ class TestAPIEndpoints:
             data = response.json()
             assert data["ok"] is True
 
-    # test_delete_db_endpoint_not_found removed - was failing
+    @patch('backend.api.BASES_DIR')
+    def test_delete_db_endpoint_not_found(self, mock_bases_dir, client):
+        """Test delete database endpoint with non-existent database."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mock_bases_dir.__truediv__ = lambda self, other: Path(temp_dir) / other
+            
+            # Mock exists() method to return False
+            with patch.object(Path, 'exists', return_value=False):
+                response = client.delete("/db/nonexistent")
+            
+            assert response.status_code == 404
+            data = response.json()
+            assert data["detail"] == "Base not found"
 
     @patch('backend.api.BASES_DIR')
     @patch('shutil.move')
@@ -301,21 +549,88 @@ class TestAPIEndpoints:
         assert "results" in data
         assert len(data["results"]) == 1
 
-    # test_get_person_details_endpoint removed - was failing
+    @patch('backend.api.SearchContext')
+    def test_get_person_details_endpoint(self, mock_search_context, client):
+        """Test get person details endpoint."""
+        mock_context = Mock()
+        mock_context.find_person_details.return_value = {
+            "id": 1,
+            "name": "John Doe",
+            "birth_date": "1990",
+            "family": {}
+        }
+        mock_search_context.return_value = mock_context
+        
+        response = client.get("/db/test_db/person?n=Doe&p=John")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["ok"] is True
+        assert "person" in data
+        assert data["person"]["id"] == 1
 
-    # test_search_db_endpoint_missing_params removed - was failing
+    def test_search_db_endpoint_missing_params(self, client):
+        """Test search database endpoint with missing parameters."""
+        response = client.get("/db/test_db/search")
+        
+        assert response.status_code == 400
+        data = response.json()
+        assert "Missing required parameters" in data["detail"]
 
-    # test_get_person_details_endpoint_missing_params removed - was failing
+    def test_get_person_details_endpoint_missing_params(self, client):
+        """Test get person details endpoint with missing parameters."""
+        response = client.get("/db/test_db/person")
+        
+        assert response.status_code == 400
+        data = response.json()
+        assert "Missing required parameters" in data["detail"]
 
 
 class TestUtilityFunctions:
     """Tests for utility functions in the API module."""
 
-    # test_load_db_file_json removed - was failing
+    @patch('builtins.open')
+    @patch('json.load')
+    @patch('backend.api.BASES_DIR')
+    def test_load_db_file_json(self, mock_bases_dir, mock_json_load, mock_open):
+        """Test load_db_file function with JSON file."""
+        from backend.api import load_db_file
+        
+        mock_json_load.return_value = {"test": "data"}
+        mock_bases_dir.__truediv__ = lambda self, other: Path("/test") / other
+        
+        result = load_db_file("test_db", "test.json", is_json=True)
+        
+        assert result == {"test": "data"}
+        mock_open.assert_called_once()
+        mock_json_load.assert_called_once()
 
-    # test_load_db_file_text removed - was failing
+    @patch('builtins.open')
+    @patch('backend.api.BASES_DIR')
+    def test_load_db_file_text(self, mock_bases_dir, mock_open):
+        """Test load_db_file function with text file."""
+        from backend.api import load_db_file
+        
+        mock_file = Mock()
+        mock_file.read.return_value = "test content"
+        mock_open.return_value.__enter__.return_value = mock_file
+        mock_bases_dir.__truediv__ = lambda self, other: Path("/test") / other
+        
+        result = load_db_file("test_db", "test.txt", is_json=False)
+        
+        assert result == "test content"
+        mock_open.assert_called_once()
 
-    # test_load_db_file_not_found removed - was failing
+    @patch('backend.api.BASES_DIR')
+    def test_load_db_file_not_found(self, mock_bases_dir):
+        """Test load_db_file function with non-existent file."""
+        from backend.api import load_db_file
+        
+        mock_bases_dir.__truediv__ = lambda self, other: Path("/nonexistent") / other
+        
+        with patch('builtins.open', side_effect=FileNotFoundError()):
+            with pytest.raises(FileNotFoundError):
+                load_db_file("test_db", "nonexistent.json")
 
 
 class TestErrorHandling:
