@@ -41,7 +41,7 @@ jobs:
         # Run tests for all modules
         # Generate HTML coverage report
         # Removed --cov-fail-under as requested
-        pytest tests/ --cov=backend --cov=front --cov=rpc --cov-report=html
+        pytest tests/ --cov=backend --cov=front --cov-report=html
       
     - name: Upload Linter Report Artifact
       uses: actions/upload-artifact@v4
