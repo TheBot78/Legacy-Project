@@ -1,0 +1,61 @@
+name: Python QA Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  test-and-lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        pip install -r rpc/requirements.txt # Install RPC dependencies
+
+    - name: Run Linters (PEP 8) and create report
+      run: |
+        # Check formatting
+        black . --check
+        isort . --check-only
+        
+        # Run flake8 and save output to a file for artifacts
+        # --exit-zero ensures the pipeline continues to generate artifacts
+        flake8 . --output-file=flake8-report.txt --exit-zero
+    
+    - name: Run All Tests and Generate Coverage Report
+      run: |
+        # Run tests for all modules
+        # Generate HTML coverage report
+        # Removed --cov-fail-under as requested
+        pytest tests/ --cov=backend --cov=front --cov=rpc --cov-report=html
+      
+    - name: Upload Linter Report Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: linter-report
+        path: flake8-report.txt
+
+    - name: Upload Coverage Report Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: htmlcov
