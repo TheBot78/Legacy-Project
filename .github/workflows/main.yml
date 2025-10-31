@@ -28,8 +28,7 @@ jobs:
     - name: Install Dependencies
       run: |
         pip install -r requirements.txt
-        pip install -r requirements-dev.txt
-        pip install -r rpc/requirements.txt # Install RPC dependencies
+        pip install -r front/requirements.txt
 
     - name: Run Linters (PEP 8) and create report
       run: |
