@@ -27,4 +27,4 @@ EXPOSE 2316
 EXPOSE 2317
 
 # Lancer gwsetup (port 2316), docker-compose pourra surcharger pour gwd (2317)
-CMD ["python -m", "front.gwsetup.app"]
+CMD ["python", "-m", "front.gwsetup.app"]
