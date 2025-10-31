@@ -27,12 +27,12 @@ def test_person_model_full_creation_succeeds():
     assert p.birth_place == "New York"
     assert p.father_id == 2
 
+
 def test_person_model_missing_surname_raises_validation_error():
     with pytest.raises(TypeError):
         Person(first_names=["John"]) # surname is required
 
+
 def test_person_model_missing_firstname_raises_validation_error():
      with pytest.raises(TypeError):
         Person(surname="Doe") # first_names is required
-
-
