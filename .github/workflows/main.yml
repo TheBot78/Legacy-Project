@@ -41,8 +41,8 @@ jobs:
         # Run tests for all modules
         # Generate HTML coverage report
         # Removed --cov-fail-under as requested
-        pytest tests/ --cov=backend --cov=front --cov-report=html
-      
+        pytest tests/ --cov=backend --cov=front --cov-report=html --cov-report=xml:coverage.xml
+    
     - name: Upload Linter Report Artifact
       uses: actions/upload-artifact@v4
       with:
@@ -54,3 +54,14 @@ jobs:
       with:
         name: coverage-report
         path: htmlcov
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Verify Docker Build
+      run: |
+        # This step directly builds the images from your docker-compose.yml
+        # to verify they build correctly without running them.
+        ./run.sh
