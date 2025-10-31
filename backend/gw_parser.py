@@ -38,6 +38,8 @@ def _parse_name_pair(tokens: List[str], start_idx: int = 0) -> Tuple[int, str, L
 
 
 def _looks_date(tok: str) -> bool:
+    if not tok:
+        return False
     return bool(
         re.match(r"^[<~]?\d{1,2}/\d{1,2}/\d{2,4}$", tok)
         or re.match(r"^[<~]?\d{3,4}$", tok)
@@ -87,33 +89,43 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
         if line.startswith("fam "):
             # Tokenize
             tokens = line.split()
+            
+            # --- PARSE HUSBAND ---
             # Parse husband: first two tokens after 'fam'
-            # We keep heuristic: first two tokens are surname/firstnames
             _, hus_surname, hus_first = _parse_name_pair(tokens, 1)
             husband_key = ensure_person(hus_surname, hus_first)
             sex_map[husband_key] = "M"
 
-            # Try to find wife near the end: last two non-control tokens
-            # Control tokens: '#', '+', '0', or date-like
-            # We'll scan from the end to find two candidate name tokens
-            wife_surname = None
+            # --- PARSE WIFE (Corrected Logic) ---
+            wife_surname = ""
             wife_first = []
-            # Remove any trailing control tokens
-            end_idx = len(tokens) - 1
-            while end_idx >= 0 and (
-                tokens[end_idx].startswith('#')
-                or tokens[end_idx] in {'+', 'od', '0'}
-                or _looks_date(tokens[end_idx])
-            ):
-                end_idx -= 1
-            if end_idx >= 1:
-                wife_surname = _clean_token(tokens[end_idx - 1])
-                wife_first_token = _clean_token(tokens[end_idx])
-                wife_first = [x for x in wife_first_token.split(' ') if x]
-                wife_key = ensure_person(wife_surname, wife_first)
-                sex_map[wife_key] = "F"
-            else:
-                wife_key = None
+            wife_key = None
+            
+            # Find the '+' separator
+            try:
+                plus_index = tokens.index('+')
+                
+                # Scan tokens after '+' to find the start of the wife's name,
+                # skipping control tokens (dates, '0', etc.)
+                wife_start_idx = plus_index + 1
+                while wife_start_idx < len(tokens):
+                    tok = tokens[wife_start_idx]
+                    if tok.startswith('#') or _looks_date(tok) or tok == '0':
+                        wife_start_idx += 1
+                    else:
+                        # Found the start of the name
+                        break
+                
+                # Ensure we have at least two tokens (surname + firstname)
+                if wife_start_idx < len(tokens) - 1:
+                    _, wife_surname, wife_first = _parse_name_pair(tokens, wife_start_idx)
+                    if wife_surname: # Only create person if a name was found
+                        wife_key = ensure_person(wife_surname, wife_first)
+                        sex_map[wife_key] = "F"
+                        
+            except ValueError:
+                # No '+' found, so no wife in this fam record (or single parent)
+                pass 
 
             # Initialize current family raw record
             fam_rec = {
@@ -179,16 +191,46 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
                             and child_toks[1] in {'h', 'f'}
                         ):
                             gender = child_toks[1]
-                            _, csurname, cfirst = _parse_name_pair(child_toks, 2)
+                            
+                            # --- START MODIFIED CHILD LOGIC ---
+                            csurname = ""
+                            cfirst = []
+                            date_token_start_index = 3 # Default if only 1 name token
+                            
+                            # Check if token 3 looks like a date, 'od', or '#...'
+                            # If so, token 2 is firstname, surname is inherited.
+                            token_3 = child_toks[3] if len(child_toks) > 3 else "od" # Assume 'od' if line ends
+                            
+                            if _looks_date(token_3) or token_3.startswith('#') or token_3 == 'od':
+                                # Format: - sex firstname [date/comment...]
+                                cfirst_token = _clean_token(child_toks[2])
+                                cfirst = [x for x in cfirst_token.split(" ") if x]
+                                # Inherit father's surname
+                                if fam_rec['husband_key'] in persons_map:
+                                    csurname = persons_map[fam_rec['husband_key']].get("surname")
+                                date_token_start_index = 3
+                            else:
+                                # Format: - sex surname firstname [date/comment...]
+                                csurname = _clean_token(child_toks[2])
+                                cfirst_token = _clean_token(child_toks[3])
+                                cfirst = [x for x in cfirst_token.split(" ") if x]
+                                date_token_start_index = 4
+
+                            if not csurname and not cfirst:
+                                i += 1 # Skip invalid line
+                                continue
+                                
                             ckey = ensure_person(csurname, cfirst)
                             sex_map[ckey] = 'M' if gender == 'h' else 'F'
+                            
                             # try to pick a date token following name for birth
-                            # scan remaining tokens for a date-like and assign as birth_date
-                            for t in child_toks[2+len(cfirst)+1:]:
+                            for t in child_toks[date_token_start_index:]:
                                 if _looks_date(t):
                                     persons_map[ckey]['birth_date'] = _clean_token(t)
                                     break
                             # set parental links
+                            # --- END MODIFIED CHILD LOGIC ---
+                            
                             persons_map[ckey]['father_key'] = fam_rec['husband_key']
                             persons_map[ckey]['mother_key'] = fam_rec['wife_key']
                             fam_rec['children_keys'].append(ckey)
@@ -251,7 +293,7 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
                         place = _normalize_place(" ".join(place_tokens))
                         if last_evt in {"#birt", "#bapt"} or tok in {"#bp"}:
                             persons_map[pkey]["birth_place"] = place
-                        else:
+                        elif last_evt == "#deat" or tok == "#dp":
                             persons_map[pkey]["death_place"] = place
                         continue
                     j += 1
@@ -309,5 +351,27 @@ def parse_gw_text(gw_text: str) -> Dict[str, object]:
             if p:
                 p.father_id = hid
                 p.mother_id = wid
+    
+    # Second pass to link parents from pevt blocks (if not set by fam)
+    # This ensures pevt data is merged with fam data
+    for pkey, pdata in persons_map.items():
+        person = persons_by_key.get(pkey)
+        if not person: continue
+
+        if person.father_id is None and pdata["father_key"]:
+            person.father_id = key_to_id.get(pdata["father_key"])
+        if person.mother_id is None and pdata["mother_key"]:
+            person.mother_id = key_to_id.get(pdata["mother_key"])
+        
+        # Merge event data (pevt data overrides fam child data if present)
+        if pdata["birth_date"]:
+             person.birth_date = pdata["birth_date"]
+        if pdata["birth_place"]:
+             person.birth_place = pdata["birth_place"]
+        if pdata["death_date"]:
+             person.death_date = pdata["death_date"]
+        if pdata["death_place"]:
+             person.death_place = pdata["death_place"]
+
 
     return {"persons": persons_out, "families": families_out, "notes": notes_map}
